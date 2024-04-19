@@ -9,13 +9,9 @@ from src.database.database import Base
 class Utente(Base):
     __tablename__ = 'utenti'
 
-    id = Column(Integer, primary_key=True, autoincrement=True)
-    nome = Column(String(255))
-    email = Column(String(255), unique=True)
+    id = Column(Integer, primary_key=True)
+    nome = Column(String)
+    email = Column(String, unique=True)
 
-    # Se hai relazioni da implementare, puoi decommentare e usare la seguente linea
-    # progetti = relationship("Progetto", back_populates="responsabile")
-
-    def __repr__(self):
-        return f"<Utente(id={self.id}, nome={self.nome}, email={self.email})>"
-
+    # Back reference dalla relazione in Progetto
+    progetti = relationship("Progetto", back_populates="responsabile")

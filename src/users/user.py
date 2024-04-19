@@ -9,7 +9,7 @@
  """
 
 from sqlalchemy import Column, Integer, String
-from .database import Base
+from src.database.database import Base
 
 class Utente(Base):
     __tablename__ = 'utenti'
