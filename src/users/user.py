@@ -16,4 +16,4 @@ class Utente(Base):
     id = Column(Integer, primary_key=True)
     nome = Column(String)
     email = Column(String)
-    # altri campi come necessario
+    

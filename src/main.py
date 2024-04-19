@@ -1,5 +1,8 @@
 from database.database import SessionLocal
 from models.utente import Utente
+from models.progetto import Progetto
+from models.task import Task
+from models.assegnazione import assegnazioni
 
 def add_user(nome, email):
     db = SessionLocal()
