@@ -1,4 +1,4 @@
-<!-- Inserisci nel tuo template HTML -->
+<!-- Inserisci nel tuo template HTML
 <canvas id="myChart"></canvas>
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
@@ -33,4 +33,84 @@ var myChart = new Chart(ctx, {
         }
     }
 });
-</script>
+</script> -->
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <title>Dashboard</title>
+    <!-- Aggiungi qui eventuali altri metatag necessari -->
+    <!-- Collegamenti a CSS esterni o interni -->
+    <!-- Bootstrap CSS, se lo stai utilizzando -->
+</head>
+<body>
+    <header>
+        <!-- Barra di navigazione, se presente -->
+    </header>
+    
+    <main>
+        <section>
+            <h1>Benvenuto, {{ current_user.nome }}</h1>
+            <h2>I tuoi progetti</h2>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Nome Progetto</th>
+                        <th>Descrizione</th>
+                        <!-- Aggiungi qui le intestazioni per altri campi -->
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for progetto in progetti %}
+                    <tr>
+                        <td>{{ progetto.nome }}</td>
+                        <td>{{ progetto.descrizione }}</td>
+                        <!-- Aggiungi qui altre celle per altri campi -->
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="2">Non ci sono progetti da mostrare.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </section>
+        
+        <section>
+            <h2>I tuoi task</h2>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Task</th>
+                        <th>Stato</th>
+                        <th>Scadenza</th>
+                        <!-- Altri campi -->
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for task in task %}
+                    <tr>
+                        <td>{{ task.nome }}</td>
+                        <td>{{ task.stato }}</td>
+                        <td>{{ task.scadenza }}</td>
+                        <!-- Altri campi -->
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="3">Non ci sono task da mostrare.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </section>
+    </main>
+    
+    <footer>
+        <!-- Footer, se necessario -->
+    </footer>
+    
+    <!-- Script JS al fondo per migliorare i tempi di caricamento -->
+    <!-- jQuery, se necessario -->
+    <!-- Bootstrap JS, se lo stai utilizzando -->
+</body>
+</html>
