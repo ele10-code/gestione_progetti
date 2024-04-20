@@ -3,119 +3,156 @@
 <head>
     <meta charset="UTF-8">
     <title>Dashboard</title>
-    <!-- Add other necessary meta tags here -->
-    <!-- Links to external or internal CSS -->
-    <link rel="stylesheet" href="path_to_your_css" /> <!-- Replace with your CSS path -->
-    <!-- Bootstrap CSS, if using -->
-    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.0/css/bootstrap.min.css">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.0/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        .card-header {
+            background-color: #007bff;
+            color: white;
+        }
+        .chart-container {
+            position: relative;
+            height: 40vh;
+            width: 80vw;
+            margin-bottom: 30px;
+        }
+        .project-card, .task-card {
+            box-shadow: 0 4px 8px 0 rgba(0,0,0,0.2);
+            transition: 0.3s;
+            border-radius: 5px;
+        }
+        .project-card:hover, .task-card:hover {
+            box-shadow: 0 8px 16px 0 rgba(0,0,0,0.2);
+        }
+        .card-body {
+            padding: 15px;
+        }
+        /* Altri stili personalizzati se necessario */
+    </style>
 </head>
 <body>
-    <header>
-        <!-- Navigation bar, if applicable -->
-    </header>
-    
-    <main>
-        <section>
-            <h1>Welcome, {{ current_user.name }}</h1>
-            <h2>Your Projects</h2>
-            <table class="table">
-                <thead>
-                    <tr>
-                        <th>Project Name</th>
-                        <th>Description</th>
-                        <!-- Add headers for other fields here -->
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for project in projects %}
-                    <tr>
-                        <td>{{ project.name }}</td>
-                        <td>{{ project.description }}</td>
-                        <!-- Add other cells for other fields here -->
-                    </tr>
-                    {% else %}
-                    <tr>
-                        <td colspan="2">No projects to display.</td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
-        </section>
+    <div class="container mt-3">
+        <header>
+            <!-- Navigation bar and flash messages display -->
+            <!-- ... -->
+        </header>
         
-        <section>
-            <h2>Your Tasks</h2>
-            <table class="table">
-                <thead>
-                    <tr>
-                        <th>Task</th>
-                        <th>Status</th>
-                        <th>Deadline</th>
-                        <!-- Other fields -->
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for task in tasks %}
-                    <tr>
-                        <td>{{ task.name }}</td>
-                        <td>{{ task.status }}</td>
-                        <td>{{ task.deadline }}</td>
-                        <!-- Other fields -->
-                    </tr>
-                    {% else %}
-                    <tr>
-                        <td colspan="3">No tasks to display.</td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
-        </section>
-
-        <!-- Insert Chart.js graph -->
-        <section>
-            <canvas id="myChart"></canvas>
-            <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-            <script>
-            var ctx = document.getElementById('myChart').getContext('2d');
-            var myChart = new Chart(ctx, {
-                type: 'bar',
-                data: {
-                    labels: ['Project 1', 'Project 2', 'Project 3'], // Update these values with real data
-                    datasets: [{
-                        label: 'Number of Tasks',
-                        data: [12, 19, 3], // Update these values with real data
-                        backgroundColor: [
-                            'rgba(255, 99, 132, 0.2)',
-                            'rgba(54, 162, 235, 0.2)',
-                            'rgba(255, 206, 86, 0.2)'
-                        ],
-                        borderColor: [
-                            'rgba(255, 99, 132, 1)',
-                            'rgba(54, 162, 235, 1)',
-                            'rgba(255, 206, 86, 1)'
-                        ],
-                        borderWidth: 1
-                    }]
-                },
-                options: {
-                    scales: {
-                        y: {
-                            beginAtZero: true
+        <main>
+            <div class="row mb-4">
+                <div class="col-12">
+                    <h1>Welcome, {{ current_user.nome }}</h1>
+                </div>
+            </div>
+            
+            <!-- Sezione Progetti -->
+            <div class="row mb-4">
+                <div class="col-12">
+                    <h2>Your Projects</h2>
+                    <div class="row">
+                        {% for project in projects %}
+                        <div class="col-md-6 col-lg-4 mb-4">
+                            <div class="card project-card">
+                                <div class="card-header">
+                                    {{ project.nome_progetto }}
+                                </div>
+                                <div class="card-body">
+                                    <p class="card-text">{{ project.descrizione }}</p>
+                                    <p class="card-text">Deadline: {{ project.scadenza.strftime('%Y-%m-%d') if project.scadenza else 'N/A' }}</p>
+                                    <p class="card-text">Responsible: {{ project.responsabile.nome if project.responsabile else 'N/A' }}</p>
+                                </div>
+                            </div>
+                        </div>
+                        {% else %}
+                        <div class="col-12">No projects to display.</div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Sezione Task -->
+            <div class="row mb-4">
+                <div class="col-12">
+                    <h2>Your Tasks</h2>
+                    <div class="row">
+                        {% for task in tasks %}
+                        <div class="col-md-6 col-lg-4 mb-4">
+                            <div class="card task-card">
+                                <div class="card-header">
+                                    Task
+                                </div>
+                                <div class="card-body">
+                                    <h5 class="card-title">{{ task.descrizione }}</h5>
+                                    <p class="card-text">Status: {{ task.stato }}</p>
+                                    <p class="card-text">Deadline: {{ task.deadline.strftime('%Y-%m-%d') if task.deadline else 'N/A' }}</p>
+                                </div>
+                            </div>
+                        </div>
+                        {% else %}
+                        <div class="col-12">No tasks to display.</div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Grafico Chart.js -->
+            <div class="row">
+                <div class="col-12">
+                    <div class="chart-container">
+                        <canvas id="myChart"></canvas>
+                    </div>
+                </div>
+            </div>
+            
+        </main>
+        
+        <!-- Footer -->
+        <footer>
+            <!-- ... -->
+        </footer>
+        
+        <!-- Script per Chart.js -->
+        <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+        <script>
+            document.addEventListener('DOMContentLoaded', function() {
+                var ctx = document.getElementById('myChart').getContext('2d');
+                var labels = {{ projects|map(attribute='nome_progetto')|list|tojson }};
+                var dataPoints = {{ projects|map(attribute='tasks')|map('length')|list|tojson }};
+                
+                var myChart = new Chart(ctx, {
+                    type: 'bar',
+                    data: {
+                        labels: labels,
+                        datasets: [{
+                            label: 'Number of Tasks',
+                            data: dataPoints,
+                            backgroundColor: [
+                                'rgba(255, 99, 132, 0.2)',
+                                'rgba(54, 162, 235, 0.2)',
+                                'rgba(255, 206, 86, 0.2)'
+                            ],
+                            borderColor: [
+                                'rgba(255, 99, 132, 1)',
+                                'rgba(54, 162, 235, 1)',
+                                'rgba(255, 206, 86, 1)'
+                            ],
+                            borderWidth: 1
+                        }]
+                    },
+                    options: {
+                        scales: {
+                            y: {
+                                beginAtZero: true
+                            }
                         }
                     }
-                }
+                });
             });
-            </script>
-        </section>
-    </main>
+        </script>
+        
+    </div>
     
-    <footer>
-        <!-- Footer, if necessary -->
-    </footer>
-    
-    <!-- JS Scripts at the bottom for improved load times -->
-    <!-- jQuery, if needed -->
+    <!-- jQuery e Bootstrap JS -->
     <script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
-    <!-- Bootstrap JS, if using -->
     <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.0/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>
