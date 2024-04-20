@@ -41,4 +41,8 @@ DESCRIBE tasks;
 DESCRIBE assegnazioni;
 
 ALTER TABLE utenti ADD COLUMN password_hash VARCHAR(255);
-ALTER TABLE utenti ADD COLUMN is_active VARCHAR(255);
+ALTER TABLE utenti ADD COLUMN _is_active BOOLEAN DEFAULT TRUE;
+
+
+
+

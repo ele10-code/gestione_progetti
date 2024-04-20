@@ -8,7 +8,7 @@ class Utente(Base):
     nome = Column(String)
     email = Column(String, unique=True)
     password_hash = Column(String)
-    is_active = Column(Boolean, default=True)  # Assicurati che questo campo sia definito nel database
+    _is_active = Column(Boolean, default=True)  
 
     # Definizione delle relazioni con Progetto e Task
     progetti = relationship('Progetto', back_populates='responsabile')
@@ -23,7 +23,7 @@ class Utente(Base):
     @property  # Usa la decorazione @property per definire un getter per l'attributo is_active
     def is_active(self):
         # Qui, ritorna l'attributo is_active dell'istanza
-        return self.is_active
+        return self._is_active
 
     def is_anonymous(self):
         # Di solito ritorna False per utenti autenticati

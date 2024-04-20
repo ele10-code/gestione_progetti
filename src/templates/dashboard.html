@@ -1,75 +1,41 @@
-<!-- Inserisci nel tuo template HTML
-<canvas id="myChart"></canvas>
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-<script>
-var ctx = document.getElementById('myChart').getContext('2d');
-var myChart = new Chart(ctx, {
-    type: 'bar',
-    data: {
-        labels: ['Progetto 1', 'Progetto 2', 'Progetto 3'],
-        datasets: [{
-            label: 'Numero di Task',
-            data: [12, 19, 3],
-            backgroundColor: [
-                'rgba(255, 99, 132, 0.2)',
-                'rgba(54, 162, 235, 0.2)',
-                'rgba(255, 206, 86, 0.2)'
-            ],
-            borderColor: [
-                'rgba(255, 99, 132, 1)',
-                'rgba(54, 162, 235, 1)',
-                'rgba(255, 206, 86, 1)'
-            ],
-            borderWidth: 1
-        }]
-    },
-    options: {
-        scales: {
-            yAxes: [{
-                ticks: {
-                    beginAtZero: true
-                }
-            }]
-        }
-    }
-});
-</script> -->
 <!DOCTYPE html>
-<html lang="it">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <title>Dashboard</title>
-    <!-- Aggiungi qui eventuali altri metatag necessari -->
-    <!-- Collegamenti a CSS esterni o interni -->
-    <!-- Bootstrap CSS, se lo stai utilizzando -->
+    <!-- Add other necessary meta tags here -->
+    <!-- Links to external or internal CSS -->
+    <link rel="stylesheet" href="path_to_your_css" /> <!-- Replace with your CSS path -->
+    <!-- Bootstrap CSS, if using -->
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.0/css/bootstrap.min.css">
 </head>
 <body>
     <header>
-        <!-- Barra di navigazione, se presente -->
+        <!-- Navigation bar, if applicable -->
     </header>
     
     <main>
         <section>
-            <h1>Benvenuto, {{ current_user.nome }}</h1>
-            <h2>I tuoi progetti</h2>
-            <table>
+            <h1>Welcome, {{ current_user.name }}</h1>
+            <h2>Your Projects</h2>
+            <table class="table">
                 <thead>
                     <tr>
-                        <th>Nome Progetto</th>
-                        <th>Descrizione</th>
-                        <!-- Aggiungi qui le intestazioni per altri campi -->
+                        <th>Project Name</th>
+                        <th>Description</th>
+                        <!-- Add headers for other fields here -->
                     </tr>
                 </thead>
                 <tbody>
-                    {% for progetto in progetti %}
+                    {% for project in projects %}
                     <tr>
-                        <td>{{ progetto.nome }}</td>
-                        <td>{{ progetto.descrizione }}</td>
-                        <!-- Aggiungi qui altre celle per altri campi -->
+                        <td>{{ project.name }}</td>
+                        <td>{{ project.description }}</td>
+                        <!-- Add other cells for other fields here -->
                     </tr>
                     {% else %}
                     <tr>
-                        <td colspan="2">Non ci sono progetti da mostrare.</td>
+                        <td colspan="2">No projects to display.</td>
                     </tr>
                     {% endfor %}
                 </tbody>
@@ -77,40 +43,79 @@ var myChart = new Chart(ctx, {
         </section>
         
         <section>
-            <h2>I tuoi task</h2>
-            <table>
+            <h2>Your Tasks</h2>
+            <table class="table">
                 <thead>
                     <tr>
                         <th>Task</th>
-                        <th>Stato</th>
-                        <th>Scadenza</th>
-                        <!-- Altri campi -->
+                        <th>Status</th>
+                        <th>Deadline</th>
+                        <!-- Other fields -->
                     </tr>
                 </thead>
                 <tbody>
-                    {% for task in task %}
+                    {% for task in tasks %}
                     <tr>
-                        <td>{{ task.nome }}</td>
-                        <td>{{ task.stato }}</td>
-                        <td>{{ task.scadenza }}</td>
-                        <!-- Altri campi -->
+                        <td>{{ task.name }}</td>
+                        <td>{{ task.status }}</td>
+                        <td>{{ task.deadline }}</td>
+                        <!-- Other fields -->
                     </tr>
                     {% else %}
                     <tr>
-                        <td colspan="3">Non ci sono task da mostrare.</td>
+                        <td colspan="3">No tasks to display.</td>
                     </tr>
                     {% endfor %}
                 </tbody>
             </table>
         </section>
+
+        <!-- Insert Chart.js graph -->
+        <section>
+            <canvas id="myChart"></canvas>
+            <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+            <script>
+            var ctx = document.getElementById('myChart').getContext('2d');
+            var myChart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: ['Project 1', 'Project 2', 'Project 3'], // Update these values with real data
+                    datasets: [{
+                        label: 'Number of Tasks',
+                        data: [12, 19, 3], // Update these values with real data
+                        backgroundColor: [
+                            'rgba(255, 99, 132, 0.2)',
+                            'rgba(54, 162, 235, 0.2)',
+                            'rgba(255, 206, 86, 0.2)'
+                        ],
+                        borderColor: [
+                            'rgba(255, 99, 132, 1)',
+                            'rgba(54, 162, 235, 1)',
+                            'rgba(255, 206, 86, 1)'
+                        ],
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    scales: {
+                        y: {
+                            beginAtZero: true
+                        }
+                    }
+                }
+            });
+            </script>
+        </section>
     </main>
     
     <footer>
-        <!-- Footer, se necessario -->
+        <!-- Footer, if necessary -->
     </footer>
     
-    <!-- Script JS al fondo per migliorare i tempi di caricamento -->
-    <!-- jQuery, se necessario -->
-    <!-- Bootstrap JS, se lo stai utilizzando -->
+    <!-- JS Scripts at the bottom for improved load times -->
+    <!-- jQuery, if needed -->
+    <script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
+    <!-- Bootstrap JS, if using -->
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.0/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>
