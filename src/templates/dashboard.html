@@ -40,55 +40,90 @@
         <main>
             <div class="row mb-4">
                 <div class="col-12">
-                    <h1>Welcome, {{ current_user.nome }}</h1>
+                    <h1>Benvenuta, {{ current_user.nome }}</h1>
+                </div>
+            </div>
+            
+            <!-- Modulo Inserimento Progetto -->
+            <div class="row mb-4">
+                <div class="col-12">
+                    <h2>Aggiungi nuovo Progetto</h2>
+                    <form method="POST" action="{{ url_for('add_project') }}">
+                        <div class="form-group">
+                            <label for="projectName">Nome Progetto</label>
+                            <input type="text" class="form-control" id="projectName" name="project_name" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="projectDescription">Descrizione del Progetto</label>
+                            <textarea class="form-control" id="projectDescription" name="project_description" rows="3" required></textarea>
+                        </div>
+                        <div class="form-group">
+                            <label for="projectDeadline">Scadenza Progetto</label>
+                            <input type="date" class="form-control" id="projectDeadline" name="project_deadline">
+                        </div>
+                        <button type="submit" class="btn btn-primary">Aggiungi</button>
+                    </form>
                 </div>
             </div>
             
             <!-- Sezione Progetti -->
             <div class="row mb-4">
                 <div class="col-12">
-                    <h2>Your Projects</h2>
+                    <h2>I tuoi Progetti</h2>
                     <div class="row">
                         {% for project in projects %}
                         <div class="col-md-6 col-lg-4 mb-4">
                             <div class="card project-card">
-                                <div class="card-header">
-                                    {{ project.nome_progetto }}
+                                <div class="card-header d-flex justify-content-between">
+                                    <span>{{ project.nome_progetto }}</span>
+                                    <form method="POST" action="{{ url_for('delete_project', project_id=project.id) }}" class="ml-auto">
+                                        <button type="submit" class="btn btn-danger btn-sm">Delete</button>
+                                    </form>
                                 </div>
                                 <div class="card-body">
                                     <p class="card-text">{{ project.descrizione }}</p>
-                                    <p class="card-text">Deadline: {{ project.scadenza.strftime('%Y-%m-%d') if project.scadenza else 'N/A' }}</p>
+                                    <p class="card-text">Scadenza: {{ project.scadenza.strftime('%Y-%m-%d') if project.scadenza else 'N/A' }}</p>
                                     <p class="card-text">Responsible: {{ project.responsabile.nome if project.responsabile else 'N/A' }}</p>
+                                    <!-- Lista dei Task -->
+                                    <h5>Tasks</h5>
+                                    <ul class="list-group mb-3">
+                                        {% for task in project.tasks %}
+                                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                                            <span>
+                                                <strong>{{ task.descrizione }}</strong><br>
+                                                Stato: {{ task.stato }} | Priorità: {{ task.priorita }} | Scadenza: {{ task.deadline.strftime('%Y-%m-%d') if task.deadline else 'N/A' }}
+                                            </span>
+                                            <form method="POST" action="{{ url_for('delete_task', task_id=task.id) }}">
+                                                <button type="submit" class="btn btn-danger btn-sm">Delete</button>
+                                            </form>
+                                        </li>
+                                        {% else %}
+                                        <li class="list-group-item">Non ci sono task.</li>
+                                        {% endfor %}
+                                    </ul>
+                                    <!-- Modulo Inserimento Task -->
+                                    <h5>Aggiungi Task</h5>
+                                    <form method="POST" action="{{ url_for('add_task') }}">
+                                        <div class="form-group">
+                                            <label for="taskDescription">Descrizione Task/label>
+                                            <textarea class="form-control" id="taskDescription" name="task_description" rows="2" required></textarea>
+                                        </div>
+                                        <div class="form-group">
+                                            <label for="taskStatus">Stato del Task</label>
+                                            <input type="text" class="form-control" id="taskStatus" name="task_status" required>
+                                        </div>
+                                        <div class="form-group">
+                                            <label for="taskPriority">Priorità del task</label>
+                                            <input type="text" class="form-control" id="taskPriority" name="task_priority" required>
+                                        </div>
+                                        <input type="hidden" name="project_id" value="{{ project.id }}">
+                                        <button type="submit" class="btn btn-primary">Add Task</button>
+                                    </form>
                                 </div>
                             </div>
                         </div>
                         {% else %}
                         <div class="col-12">No projects to display.</div>
-                        {% endfor %}
-                    </div>
-                </div>
-            </div>
-            
-            <!-- Sezione Task -->
-            <div class="row mb-4">
-                <div class="col-12">
-                    <h2>Your Tasks</h2>
-                    <div class="row">
-                        {% for task in tasks %}
-                        <div class="col-md-6 col-lg-4 mb-4">
-                            <div class="card task-card">
-                                <div class="card-header">
-                                    Task
-                                </div>
-                                <div class="card-body">
-                                    <h5 class="card-title">{{ task.descrizione }}</h5>
-                                    <p class="card-text">Status: {{ task.stato }}</p>
-                                    <p class="card-text">Deadline: {{ task.deadline.strftime('%Y-%m-%d') if task.deadline else 'N/A' }}</p>
-                                </div>
-                            </div>
-                        </div>
-                        {% else %}
-                        <div class="col-12">No tasks to display.</div>
                         {% endfor %}
                     </div>
                 </div>

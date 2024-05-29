@@ -1,4 +1,4 @@
 from .utente import Utente
-from .task import Task
 from .progetto import Progetto
-from .assegnazione import assegnazioni
+from .task import Task
+from .assegnazione import Assegnazione 

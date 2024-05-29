@@ -1,7 +1,12 @@
-from sqlalchemy import Table, Column, Integer, ForeignKey
+# models/assegnazione.py
+from sqlalchemy import Column, Integer, ForeignKey
+from sqlalchemy.orm import relationship
 from database.database import Base
 
-assegnazioni = Table('assegnazioni', Base.metadata,
-    Column('id_utente', Integer, ForeignKey('utenti.id'), primary_key=True),
-    Column('id_task', Integer, ForeignKey('tasks.id'), primary_key=True)
-)
+class Assegnazione(Base):
+    __tablename__ = 'assegnazioni'
+    
+    id_utente = Column(Integer, ForeignKey('utenti.id', ondelete='CASCADE'), primary_key=True)
+    id_task = Column(Integer, ForeignKey('tasks.id', ondelete='CASCADE'), primary_key=True)
+    utente = relationship('Utente', back_populates='assegnazioni')
+    task = relationship('Task', back_populates='assegnazioni')

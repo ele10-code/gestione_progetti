@@ -1,18 +1,19 @@
+# models/utente.py
 from sqlalchemy import Column, Integer, String, Boolean
 from sqlalchemy.orm import relationship
 from database.database import Base
 
 class Utente(Base):
     __tablename__ = 'utenti'
-    id = Column(Integer, primary_key=True)
-    nome = Column(String)
-    email = Column(String, unique=True)
-    password_hash = Column(String)
-    _is_active = Column(Boolean, default=True)  
-
-    # Definizione delle relazioni con Progetto e Task
+    
+    id = Column(Integer, primary_key=True, index=True)
+    nome = Column(String(255), nullable=False)
+    email = Column(String(255), unique=True, nullable=False)
+    password_hash = Column(String(255))
+    _is_active = Column(Boolean, default=True)
+    assegnazioni = relationship('Assegnazione', back_populates='utente')
     progetti = relationship('Progetto', back_populates='responsabile')
-    tasks = relationship('Task', secondary='assegnazioni', back_populates='utenti')
+
 
     # Flask-Login richiede i seguenti metodi
 
