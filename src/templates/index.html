@@ -13,6 +13,9 @@
         .header {
             margin-bottom: 30px;
         }
+        .tab-content {
+            margin-top: 20px;
+        }
     </style>
 </head>
 <body>
@@ -23,23 +26,67 @@
             <p class="lead text-center">Benvenuti nel sistema di Gestione Progetti. Organizza, traccia e gestisci i tuoi progetti e compiti con facilità.</p>
         </div>
 
-        <!-- Modulo di Login -->
-        <div class="row justify-content-center">
-            <div class="col-md-6">
-                <div class="card">
-                    <div class="card-header">Login</div>
-                    <div class="card-body">
-                        <form method="post" action="{{ url_for('login') }}">
-                            <div class="form-group">
-                                <label for="email">Email</label>
-                                <input type="email" class="form-control" id="email" name="email" required>
+        <!-- Tabs per Login e Registrazione -->
+        <ul class="nav nav-tabs" id="authTabs" role="tablist">
+            <li class="nav-item">
+                <a class="nav-link active" id="login-tab" data-toggle="tab" href="#login" role="tab" aria-controls="login" aria-selected="true">Login</a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" id="register-tab" data-toggle="tab" href="#register" role="tab" aria-controls="register" aria-selected="false">Registrati</a>
+            </li>
+        </ul>
+        <div class="tab-content" id="authTabsContent">
+            <!-- Modulo di Login -->
+            <div class="tab-pane fade show active" id="login" role="tabpanel" aria-labelledby="login-tab">
+                <div class="row justify-content-center">
+                    <div class="col-md-6">
+                        <div class="card">
+                            <div class="card-header">Login</div>
+                            <div class="card-body">
+                                <form method="post" action="{{ url_for('login') }}">
+                                    <div class="form-group">
+                                        <label for="email">Email</label>
+                                        <input type="email" class="form-control" id="email" name="email" required>
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="password">Password</label>
+                                        <input type="password" class="form-control" id="password" name="password" required>
+                                    </div>
+                                    <button type="submit" class="btn btn-primary btn-block">Accedi</button>
+                                </form>
                             </div>
-                            <div class="form-group">
-                                <label for="password">Password</label>
-                                <input type="password" class="form-control" id="password" name="password" required>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Modulo di Registrazione -->
+            <div class="tab-pane fade" id="register" role="tabpanel" aria-labelledby="register-tab">
+                <div class="row justify-content-center">
+                    <div class="col-md-6">
+                        <div class="card">
+                            <div class="card-header">Registrati</div>
+                            <div class="card-body">
+                                <form method="post" action="{{ url_for('register') }}">
+                                    <div class="form-group">
+                                        <label for="name">Nome</label>
+                                        <input type="text" class="form-control" id="name" name="name" required>
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="email">Email</label>
+                                        <input type="email" class="form-control" id="email" name="email" required>
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="password">Password</label>
+                                        <input type="password" class="form-control" id="password" name="password" required>
+                                    </div>
+                                    <button type="submit" class="btn btn-primary btn-block">Registrati</button>
+                                </form>
+                                <div class="text-center mt-3">
+                                    <p>Hai già un account? <a href="#" id="switchToLogin">Accedi qui</a></p>
+                                </div>
                             </div>
-                            <button type="submit" class="btn btn-primary btn-block">Accedi</button>
-                        </form>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -50,5 +97,11 @@
     <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/popper.js@1.11.9/dist/umd/popper.min.js"></script>
     <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+    <script>
+        // Script per passare da una tab all'altra
+        document.getElementById('switchToLogin').addEventListener('click', function() {
+            $('#authTabs a[href="#login"]').tab('show');
+        });
+    </script>
 </body>
 </html>

@@ -50,17 +50,44 @@ def register():
         return redirect(url_for('dashboard'))
     return render_template('register.html')
 
+def project_to_dict(project):
+    return {
+        'id': project.id,
+        'nome_progetto': project.nome_progetto,
+        'descrizione': project.descrizione,
+        'scadenza': project.scadenza.strftime('%Y-%m-%d') if project.scadenza else None,
+        'responsabile': {
+            'id': project.responsabile.id,
+            'nome': project.responsabile.nome
+        } if project.responsabile else None,
+        'tasks': [task_to_dict(task) for task in project.tasks]
+    }
+
+def task_to_dict(task):
+    return {
+        'id': task.id,
+        'descrizione': task.descrizione,
+        'stato': task.stato,
+        'priorita': task.priorita,
+        'scadenza': task.scadenza.strftime('%Y-%m-%d') if task.scadenza else None
+    }
+
+
 @app.route('/dashboard')
 @login_required
 def dashboard():
     db_session = get_db_session()
     user_projects = db_session.query(Progetto).options(
         joinedload(Progetto.responsabile),
-        joinedload(Progetto.tasks)  # Carica anche i task associati ai progetti
+        joinedload(Progetto.tasks)
     ).filter_by(id_responsabile=current_user.id).all()
     user_tasks = db_session.query(Task).join(Assegnazione).filter(Assegnazione.id_utente == current_user.id).all()
     db_session.close()
-    return render_template('dashboard.html', projects=user_projects, tasks=user_tasks)
+
+    projects_dict = [project_to_dict(project) for project in user_projects]
+    tasks_dict = [task_to_dict(task) for task in user_tasks]
+
+    return render_template('dashboard.html', projects=projects_dict, tasks=tasks_dict)
 
 @app.route('/add_project', methods=['POST'])
 @login_required
@@ -90,12 +117,14 @@ def add_task():
     task_description = request.form.get('task_description')
     task_status = request.form.get('task_status')
     task_priority = request.form.get('task_priority')
+    task_deadline = request.form.get('task_deadline')  # Assicurati che questa riga sia presente
     project_id = request.form.get('project_id')
     
     new_task = Task(
         descrizione=task_description,
         stato=task_status,
         priorita=task_priority,
+        scadenza=task_deadline,  # Assicurati che questa riga sia presente
         id_progetto=project_id
     )
     
@@ -135,6 +164,20 @@ def delete_task(task_id):
     db_session.close()
     return redirect(url_for('dashboard'))
 
+@app.route('/get_project_tasks/<int:project_id>', methods=['GET'])
+@login_required
+def get_project_tasks(project_id):
+    db_session = get_db_session()
+    project = db_session.query(Progetto).filter_by(id=project_id, id_responsabile=current_user.id).first()
+    if project:
+        tasks = [task_to_dict(task) for task in project.tasks]
+        db_session.close()
+        return {'tasks': tasks}
+    else:
+        db_session.close()
+        return {'error': 'Project not found or not authorized'}, 404
+
+
 @login_manager.user_loader
 def load_user(user_id):
     db_session = get_db_session()
@@ -160,7 +203,7 @@ def login():
             flash('Invalid email or password.', 'danger')
     return render_template('login.html')
 
-@app.route('/logout')
+@app.route('/logout', methods=['POST'])
 @login_required
 def logout():
     logout_user()

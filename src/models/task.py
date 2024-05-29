@@ -1,5 +1,5 @@
 # models/task.py
-from sqlalchemy import Column, Integer, String, Text, ForeignKey
+from sqlalchemy import Column, Integer, String, Text, ForeignKey, DateTime
 from sqlalchemy.orm import relationship
 from database.database import Base
 
@@ -11,5 +11,6 @@ class Task(Base):
     id_progetto = Column(Integer, ForeignKey('progetti.id', ondelete='CASCADE'))
     stato = Column(String(100))
     priorita = Column(String(100))
+    scadenza = Column(DateTime)  # Assicurati che questa riga sia presente
     progetto = relationship('Progetto', back_populates='tasks')
     assegnazioni = relationship('Assegnazione', back_populates='task')
