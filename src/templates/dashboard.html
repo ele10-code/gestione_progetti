@@ -6,6 +6,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.0/css/bootstrap.min.css" rel="stylesheet">
     <style>
+        body {
+            background-color: #f0f0f0;
+        }
         .card-header {
             background-color: #007bff;
             color: white;
@@ -19,20 +22,58 @@
         .project-card, .task-card {
             box-shadow: 0 4px 8px 0 rgba(0,0,0,0.2);
             transition: 0.3s;
-            border-radius: 5px;
+            border-radius: 10px;
+            background-color: white;
         }
         .project-card:hover, .task-card:hover {
             box-shadow: 0 8px 16px 0 rgba(0,0,0,0.2);
         }
         .card-body {
-            padding: 15px;
+            padding: 20px;
         }
-        /* Altri stili personalizzati se necessario */
+        .header {
+            background-color: #007bff;
+            color: white;
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 30px;
+            text-align: center;
+        }
+        .header h1 {
+            margin: 0;
+        }
+        .header form {
+            margin: 0;
+        }
+        .header button {
+            margin-left: 20px;
+        }
+        .btn-primary {
+            background-color: #007bff;
+            border: none;
+        }
+        .btn-primary:hover {
+            background-color: #0056b3;
+        }
+        .container {
+            max-width: 1200px;
+        }
+        .card-header h5 {
+            margin: 0;
+        }
+        .card-header .btn {
+            background-color: transparent;
+            color: white;
+            border: none;
+        }
+        .card-header .btn:hover {
+            color: #ff6b6b;
+        }
     </style>
 </head>
 <body>
     <div class="container mt-3">
-        <header class="d-flex justify-content-between align-items-center mb-4">
+        <header class="header d-flex justify-content-between align-items-center mb-4">
             <h1>Benvenuta, {{ current_user.nome }}</h1>
             <form method="POST" action="{{ url_for('logout') }}">
                 <button type="submit" class="btn btn-danger">Logout</button>
@@ -42,8 +83,8 @@
         <main>
             <div class="row mb-4">
                 <div class="col-12">
-                    <button class="btn btn-primary" id="toggleProjectForm">Aggiungi nuovo Progetto</button>
-                    <div id="projectForm" style="display: none;">
+                    <button class="btn btn-primary btn-block" id="toggleProjectForm">Aggiungi nuovo Progetto</button>
+                    <div id="projectForm" style="display: none; margin-top: 20px;">
                         <form method="POST" action="{{ url_for('add_project') }}">
                             <div class="form-group">
                                 <label for="projectName">Nome Progetto</label>
@@ -57,7 +98,7 @@
                                 <label for="projectDeadline">Scadenza Progetto</label>
                                 <input type="date" class="form-control" id="projectDeadline" name="project_deadline">
                             </div>
-                            <button type="submit" class="btn btn-primary">Aggiungi</button>
+                            <button type="submit" class="btn btn-primary btn-block">Aggiungi</button>
                         </form>
                     </div>
                 </div>
@@ -71,34 +112,33 @@
                         {% for project in projects %}
                         <div class="col-md-6 col-lg-4 mb-4">
                             <div class="card project-card">
-                                <div class="card-header d-flex justify-content-between">
-                                    <span>{{ project.nome_progetto }}</span>
-                                    <form method="POST" action="{{ url_for('delete_project', project_id=project.id) }}" class="ml-auto">
-                                        <button type="submit" class="btn btn-danger btn-sm">Delete</button>
+                                <div class="card-header d-flex justify-content-between align-items-center">
+                                    <h5>{{ project.nome_progetto }}</h5>
+                                    <form method="POST" action="{{ url_for('delete_project', project_id=project.id) }}">
+                                        <button type="submit" class="btn btn-sm">Delete</button>
                                     </form>
                                 </div>
                                 <div class="card-body">
                                     <p class="card-text">{{ project.descrizione }}</p>
                                     <p class="card-text">Scadenza: {{ project.scadenza if project.scadenza else 'N/A' }}</p>
                                     <p class="card-text">Responsabile: {{ project.responsabile.nome if project.responsabile else 'N/A' }}</p>
-                                 <!-- Lista dei Task -->
-                                <h5>Tasks</h5>
-                                <ul class="list-group mb-3">
-                                    {% for task in project.tasks %}
-                                    <li class="list-group-item d-flex justify-content-between align-items-center">
-                                        <span>
-                                            <strong>{{ task.descrizione }}</strong><br>
-                                            Stato: {{ task.stato }} | Priorità: {{ task.priorita }} | Scadenza: {{ task.scadenza if task.scadenza else 'N/A' }}
-                                        </span>
-                                        <form method="POST" action="{{ url_for('delete_task', task_id=task.id) }}">
-                                            <button type="submit" class="btn btn-danger btn-sm">Delete</button>
-                                        </form>
-                                    </li>
-                                    {% else %}
-                                    <li class="list-group-item">Non ci sono task.</li>
-                                    {% endfor %}
-                                </ul>
-
+                                    <!-- Lista dei Task -->
+                                    <h5>Tasks</h5>
+                                    <ul class="list-group mb-3">
+                                        {% for task in project.tasks %}
+                                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                                            <span>
+                                                <strong>{{ task.descrizione }}</strong><br>
+                                                Stato: {{ task.stato }} | Priorità: {{ task.priorita }} | Scadenza: {{ task.scadenza if task.scadenza else 'N/A' }}
+                                            </span>
+                                            <form method="POST" action="{{ url_for('delete_task', task_id=task.id) }}">
+                                                <button type="submit" class="btn btn-danger btn-sm">Delete</button>
+                                            </form>
+                                        </li>
+                                        {% else %}
+                                        <li class="list-group-item">Non ci sono task.</li>
+                                        {% endfor %}
+                                    </ul>
 
                                     <!-- Modulo Inserimento Task -->
                                     <h5>Aggiungi Task</h5>
@@ -120,7 +160,7 @@
                                             <input type="date" class="form-control" id="taskDeadline" name="task_deadline">
                                         </div>
                                         <input type="hidden" name="project_id" value="{{ project.id }}">
-                                        <button type="submit" class="btn btn-primary">Aggiungi Task</button>
+                                        <button type="submit" class="btn btn-primary btn-block">Aggiungi Task</button>
                                     </form>
                                 </div>
                             </div>
