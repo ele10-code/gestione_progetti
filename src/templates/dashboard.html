@@ -81,23 +81,25 @@
                                     <p class="card-text">{{ project.descrizione }}</p>
                                     <p class="card-text">Scadenza: {{ project.scadenza if project.scadenza else 'N/A' }}</p>
                                     <p class="card-text">Responsabile: {{ project.responsabile.nome if project.responsabile else 'N/A' }}</p>
-                                    <!-- Lista dei Task -->
-                                    <h5>Tasks</h5>
-                                    <ul class="list-group mb-3">
-                                        {% for task in project.tasks %}
-                                        <li class="list-group-item d-flex justify-content-between align-items-center">
-                                            <span>
-                                                <strong>{{ task.descrizione }}</strong><br>
-                                                Stato: {{ task.stato }} | Priorità: {{ task.priorita }} | Scadenza: {{ task.scadenza if task.scadenza else 'N/A' }}
-                                            </span>
-                                            <form method="POST" action="{{ url_for('delete_task', task_id=task.id) }}">
-                                                <button type="submit" class="btn btn-danger btn-sm">Delete</button>
-                                            </form>
-                                        </li>
-                                        {% else %}
-                                        <li class="list-group-item">Non ci sono task.</li>
-                                        {% endfor %}
-                                    </ul>
+                                 <!-- Lista dei Task -->
+                                <h5>Tasks</h5>
+                                <ul class="list-group mb-3">
+                                    {% for task in project.tasks %}
+                                    <li class="list-group-item d-flex justify-content-between align-items-center">
+                                        <span>
+                                            <strong>{{ task.descrizione }}</strong><br>
+                                            Stato: {{ task.stato }} | Priorità: {{ task.priorita }} | Scadenza: {{ task.scadenza if task.scadenza else 'N/A' }}
+                                        </span>
+                                        <form method="POST" action="{{ url_for('delete_task', task_id=task.id) }}">
+                                            <button type="submit" class="btn btn-danger btn-sm">Delete</button>
+                                        </form>
+                                    </li>
+                                    {% else %}
+                                    <li class="list-group-item">Non ci sono task.</li>
+                                    {% endfor %}
+                                </ul>
+
+
                                     <!-- Modulo Inserimento Task -->
                                     <h5>Aggiungi Task</h5>
                                     <form method="POST" action="{{ url_for('add_task') }}">

@@ -154,15 +154,39 @@ def delete_project(project_id):
 @login_required
 def delete_task(task_id):
     db_session = get_db_session()
-    task = db_session.query(Task).join(Assegnazione).filter(Task.id==task_id, Assegnazione.id_utente==current_user.id).first()
+    print(f"Attempting to delete task with id {task_id}")
+    
+    # Trova il task
+    task = db_session.query(Task).filter_by(id=task_id).first()
+    
     if task:
-        db_session.delete(task)
-        db_session.commit()
-        flash('Task deleted successfully!', 'success')
+        print(f"Task found: {task.descrizione}")
+        print(f"Task project id: {task.id_progetto}, current user id: {current_user.id}")
+        
+        # Controlla se l'utente corrente è il responsabile del progetto del task
+        project = db_session.query(Progetto).filter_by(id=task.id_progetto).first()
+        
+        if project:
+            if project.id_responsabile == current_user.id:
+                print(f"User {current_user.id} is responsible for project {project.id}")
+                db_session.delete(task)
+                db_session.commit()
+                flash('Task deleted successfully!', 'success')
+            else:
+                print(f"User {current_user.id} is not responsible for project {project.id}")
+                flash('User not authorized to delete this task.', 'danger')
+        else:
+            print("Project not found")
+            flash('Project not found.', 'danger')
     else:
-        flash('Task not found or not authorized.', 'danger')
+        print("Task not found")
+        flash('Task not found.', 'danger')
+    
     db_session.close()
     return redirect(url_for('dashboard'))
+
+
+
 
 @app.route('/get_project_tasks/<int:project_id>', methods=['GET'])
 @login_required

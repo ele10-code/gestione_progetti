@@ -6,7 +6,8 @@ from database.database import Base
 class Assegnazione(Base):
     __tablename__ = 'assegnazioni'
     
-    id_utente = Column(Integer, ForeignKey('utenti.id', ondelete='CASCADE'), primary_key=True)
-    id_task = Column(Integer, ForeignKey('tasks.id', ondelete='CASCADE'), primary_key=True)
+    id_utente = Column(Integer, ForeignKey('utenti.id'), primary_key=True)
+    id_task = Column(Integer, ForeignKey('tasks.id'), primary_key=True)
+    
     utente = relationship('Utente', back_populates='assegnazioni')
     task = relationship('Task', back_populates='assegnazioni')
