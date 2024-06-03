@@ -33,7 +33,6 @@ def test_home_page(client):
     assert rv.status_code == 200
     assert b"Benvenuti nella Gestione Progetti" in rv.data
 
-
 def test_add_project(client):
     with app.app_context():
         db_session = get_db_session()
@@ -44,15 +43,17 @@ def test_add_project(client):
             project_deadline="2024-12-31"
         ), follow_redirects=True)
         project_count_after = db_session.query(Progetto).count()
+        print(f"Project count before: {project_count_before}, after: {project_count_after}")
         assert rv.status_code == 200
         assert project_count_after == project_count_before + 1
-        
+
 def test_add_project_invalid_deadline(client):
     rv = client.post('/add_project', data=dict(
         project_name="Test Project",
         project_description="Description",
-        project_deadline="2024-12-31"
+        project_deadline="2023-12-31"
     ), follow_redirects=True)
+    print(rv.data)
     assert rv.status_code == 200
     assert b"Scadenza progetto deve essere maggiore di oggi" in rv.data
 
@@ -62,52 +63,19 @@ def test_add_project_invalid_name(client):
         project_description="Description",
         project_deadline="2024-12-31"
     ), follow_redirects=True)
+    print(rv.data)
     assert rv.status_code == 200
-    assert b"Il nome del progetto deve esserci" in rv.data 
-    
+    assert b"Il nome del progetto deve esserci" in rv.data
+
 def test_add_project_invalid_description(client):
     rv = client.post('/add_project', data=dict(
         project_name="Test Project",
         project_description="",
         project_deadline="2024-12-31"
     ), follow_redirects=True)
+    print(rv.data)
     assert rv.status_code == 200
     assert b"La descrizione del progetto deve esserci" in rv.data
-
-def test_add_project_invalid_deadline(client):
-    rv = client.post('/add_project', data=dict(
-        project_name="Test Project",
-        project_description="Description",
-        project_deadline="2023-12-31"
-    ), follow_redirects=True)
-    assert rv.status_code == 200
-    assert b"Scadenza progetto deve essere maggiore di oggi" in rv.data
-    
-
-
-""" def test_add_task(client):
-    with app.app_context():
-        db_session = get_db_session()
-        task_count_before = db_session.query(Task).count()
-        
-        # Ensure a project with id 1 exists
-        project = db_session.get(Progetto, 1)
-        if not project:
-            project = Progetto(id=1, nome_progetto="Test Project", descrizione="Description", scadenza=datetime.datetime.now())
-            db_session.add(project)
-            db_session.commit()
-        
-        rv = client.post('/add_task', data=dict(
-            task_description="Test Task",
-            task_status="To Do",
-            task_priority="High",
-            task_deadline="2024-12-31",
-            project_id=1
-        ), follow_redirects=True)
-        
-        task_count_after = db_session.query(Task).count()
-        assert rv.status_code == 200
-        assert task_count_after == task_count_before + 1 """
 
 @given(
     st.text(), 
@@ -138,5 +106,6 @@ def test_add_task_property_based(task_description, task_status, task_priority, t
             ), follow_redirects=True)
             
             task_count_after = db_session.query(Task).count()
+            print(f"Task count before: {task_count_before}, after: {task_count_after}")
             assert rv.status_code == 200
             assert task_count_after == task_count_before + 1

@@ -7,7 +7,7 @@ from models.progetto import Progetto
 from models.task import Task
 from models.assegnazione import Assegnazione  # Importa correttamente il modello Assegnazione
 from sqlalchemy.orm import joinedload
-import sys
+import sys, datetime
 
 # Stampa e imposta il limite di ricorsione per identificare problemi di ricorsione infinita
 print(sys.getrecursionlimit())  # Print the current recursion limit
@@ -96,6 +96,21 @@ def add_project():
     project_description = request.form.get('project_description')
     project_deadline = request.form.get('project_deadline')
 
+    # Validazione dei campi del form
+    if not project_name:
+        flash("Il nome del progetto deve esserci", 'danger')
+        return redirect(url_for('dashboard'))
+    
+    if not project_description:
+        flash("La descrizione del progetto deve esserci", 'danger')
+        return redirect(url_for('dashboard'))
+    
+    if project_deadline:
+        project_deadline = datetime.datetime.strptime(project_deadline, '%Y-%m-%d')
+        if project_deadline <= datetime.datetime.now():
+            flash("Scadenza progetto deve essere maggiore di oggi", 'danger')
+            return redirect(url_for('dashboard'))
+
     new_project = Progetto(
         nome_progetto=project_name,
         descrizione=project_description,
@@ -108,8 +123,9 @@ def add_project():
     db_session.commit()
     db_session.close()
     
-    flash('Project added successfully!', 'success')
+    flash('Progetto aggiunto con successo!', 'success')
     return redirect(url_for('dashboard'))
+
 
 @app.route('/add_task', methods=['POST'])
 @login_required
