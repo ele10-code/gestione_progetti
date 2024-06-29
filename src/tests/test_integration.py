@@ -3,6 +3,7 @@ from app import app, get_db_session
 from models.utente import Utente
 from models.progetto import Progetto
 from models.task import Task
+from models.assegnazione import Assegnazione
 
 @pytest.fixture
 def client():
