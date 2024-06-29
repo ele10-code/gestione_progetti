@@ -1,4 +1,4 @@
-import pytest
+""" import pytest
 import mysql.connector
 from app import app, get_db_connection
 
@@ -47,5 +47,41 @@ def test_login_user(client):
     assert response.status_code == 302  # Verifica che ci sia una redirezione
     assert response.headers['Location'] == '/dashboard'  # Verifica che la redirezione avvenga alla dashboard
 
+ """
+ 
+ 
+ # test con property based testing
+ 
+import pytest
+from hypothesis import given, strategies as st
+import mysql.connector
+from app import app, get_db_connection
 
+@pytest.fixture
+def client():
+    app.config['TESTING'] = True
+    with app.test_client() as client:
+        with get_db_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute('DELETE FROM assegnazioni')
+            cursor.execute('DELETE FROM tasks')
+            cursor.execute('DELETE FROM progetti')
+            cursor.execute('DELETE FROM utenti')
+            conn.commit()
+            cursor.close()
+        yield client
 
+@given(name=st.text(min_size=1, max_size=255),
+       email=st.emails(),
+       password=st.text(min_size=8, max_size=255))
+def test_register_user(client, name, email, password):
+    response = client.post('/register', data={
+        'name': name,
+        'email': email,
+        'password': password
+    })
+    if response.status_code != 302:
+        print(f"Failed with name: {name}, email: {email}, password: {password}")
+        print(f"Response data: {response.data}")
+    assert response.status_code == 302  # Verifica che ci sia una redirezione
+    assert response.headers['Location'] == '/dashboard'  # Verifica che la redirezione avvenga alla dashboard

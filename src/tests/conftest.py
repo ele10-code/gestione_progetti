@@ -39,7 +39,6 @@ def session(test_engine):
 @pytest.fixture(scope='module')
 def client():
     flask_app.config['TESTING'] = True
-    flask_app.config['SQLALCHEMY_DATABASE_URI'] = TEST_DATABASE_URL
     with flask_app.test_client() as client:
         with flask_app.app_context():
             Base.metadata.create_all(bind=SessionLocal().get_bind())
