@@ -14,22 +14,24 @@ class Utente(Base):
     assegnazioni = relationship('Assegnazione', back_populates='utente')
     progetti = relationship('Progetto', back_populates='responsabile')
 
+    def __init__(self, id=None, nome=None, email=None, password_hash=None, _is_active=True):
+        self.id = id
+        self.nome = nome
+        self.email = email
+        self.password_hash = password_hash
+        self._is_active = _is_active
 
     # Flask-Login richiede i seguenti metodi
 
     def is_authenticated(self):
-        # Di solito ritorna True se l'utente ha fornito credenziali valide
         return True
 
-    @property  # Usa la decorazione @property per definire un getter per l'attributo is_active
+    @property
     def is_active(self):
-        # Qui, ritorna l'attributo is_active dell'istanza
         return self._is_active
 
     def is_anonymous(self):
-        # Di solito ritorna False per utenti autenticati
         return False
 
     def get_id(self):
-        # Deve ritornare un id univoco per l'utente come stringa
         return str(self.id)

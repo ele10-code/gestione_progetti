@@ -5,7 +5,7 @@ from sqlalchemy.orm import sessionmaker, declarative_base, scoped_session
 Base = declarative_base()
 
 # Database connection URL
-DATABASE_URL = "mysql+mysqlconnector://admin:admin_password@localhost/GestioneProgetti"
+DATABASE_URL = "mysql+mysqlconnector://admin:password@localhost/GestioneProgetti"
 
 # Create the engine and session
 engine = create_engine(DATABASE_URL, echo=True)

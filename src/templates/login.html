@@ -3,22 +3,21 @@
 <head>
     <meta charset="UTF-8">
     <title>Login</title>
-    <!-- Opzionalmente, aggiungi link a CSS o JS qui -->
-    <!-- <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}"> -->
 </head>
 <body>
-    <h1>Form di Login</h1>
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            <ul>
+            {% for category, message in messages %}
+                <li class="{{ category }}">{{ message }}</li>
+            {% endfor %}
+            </ul>
+        {% endif %}
+    {% endwith %}
     <form method="post">
-        <div>
-            <label for="email">Email:</label>
-            <input type="email" id="email" name="email" required>
-        </div>
-        <div>
-            <label for="password">Password:</label>
-            <input type="password" id="password" name="password" required>
-        </div>
+        <input type="email" name="email" placeholder="Email">
+        <input type="password" name="password" placeholder="Password">
         <button type="submit">Login</button>
     </form>
-    <p>Non hai un account? <a href="{{ url_for('register') }}">Registrati qui</a></p>
 </body>
 </html>
