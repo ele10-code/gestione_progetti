@@ -1,9 +1,11 @@
--- Creazione del database
-CREATE DATABASE GestioneProgetti;
-USE GestioneProgetti;
+-- Crea il database di test
+CREATE DATABASE IF NOT EXISTS TestGestioneProgetti;
 
--- Creazione della tabella utenti
-CREATE TABLE utenti (
+-- Usa il database di test
+USE TestGestioneProgetti;
+
+-- Crea la tabella utenti
+CREATE TABLE IF NOT EXISTS utenti (
     id INT AUTO_INCREMENT PRIMARY KEY,
     nome VARCHAR(255) NOT NULL,
     email VARCHAR(255) UNIQUE NOT NULL,
@@ -11,8 +13,8 @@ CREATE TABLE utenti (
     _is_active BOOLEAN DEFAULT TRUE
 );
 
--- Creazione della tabella progetti
-CREATE TABLE progetti (
+-- Crea la tabella progetti
+CREATE TABLE IF NOT EXISTS progetti (
     id INT AUTO_INCREMENT PRIMARY KEY,
     nome_progetto VARCHAR(255) NOT NULL,
     id_responsabile INT,
@@ -20,8 +22,8 @@ CREATE TABLE progetti (
     FOREIGN KEY (id_responsabile) REFERENCES utenti(id) ON DELETE SET NULL
 );
 
--- Creazione della tabella tasks
-CREATE TABLE tasks (
+-- Crea la tabella tasks
+CREATE TABLE IF NOT EXISTS tasks (
     id INT AUTO_INCREMENT PRIMARY KEY,
     descrizione TEXT,
     id_progetto INT,
@@ -30,12 +32,11 @@ CREATE TABLE tasks (
     FOREIGN KEY (id_progetto) REFERENCES progetti(id) ON DELETE CASCADE
 );
 
--- Creazione della tabella assegnazioni
-CREATE TABLE assegnazioni (
+-- Crea la tabella assegnazioni
+CREATE TABLE IF NOT EXISTS assegnazioni (
     id_utente INT,
     id_task INT,
     PRIMARY KEY (id_utente, id_task),
     FOREIGN KEY (id_utente) REFERENCES utenti(id) ON DELETE CASCADE,
     FOREIGN KEY (id_task) REFERENCES tasks(id) ON DELETE CASCADE
 );
-

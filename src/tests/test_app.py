@@ -1,41 +1,72 @@
-import unittest
-from app import app, db
+import pytest
+from app import app as flask_app
+from database.database import get_db_session
 from models.utente import Utente
-from werkzeug.security import generate_password_hash
+from models.progetto import Progetto
+from models.task import Task
 
-class TestApp(unittest.TestCase):
+def test_register_user(client):
+    print("Testing user registration...")
+    response = client.post('/register', data={
+        'name': 'Test User',
+        'email': 'testuser@example.com',
+        'password': 'password'
+    })
+    assert response.status_code == 200
 
-    def setUp(self):
-        self.app = app.test_client()
-        self.app.testing = True
+def test_login_user(client):
+    print("Testing user login...")
+    response = client.post('/login', data={
+        'email': 'testuser@example.com',
+        'password': 'password'
+    })
+    assert response.status_code == 200
 
-        # Create test user
-        self.test_user = Utente(id=1, nome="Mario Rossi", email="mario.rossi@example.com", password_hash=generate_password_hash("password"))
+def test_dashboard_access(client):
+    print("Testing dashboard access...")
+    client.post('/login', data={
+        'email': 'testuser@example.com',
+        'password': 'password'
+    })
+    response = client.get('/dashboard')
+    assert response.status_code == 200
 
-        # Create database and add test user
-        with app.app_context():
-            db.create_all()
-            db.session.add(self.test_user)
-            db.session.commit()
+def test_add_project(client):
+    print("Testing adding a project...")
+    client.post('/login', data={
+        'email': 'testuser@example.com',
+        'password': 'password'
+    })
+    response = client.post('/add_project', data={
+        'project_name': 'Test Project',
+        'project_description': 'This is a test project',
+        'project_deadline': '2024-12-31'
+    })
+    assert response.status_code == 302  # Redirects to dashboard
+    db_session = get_db_session()
+    project = db_session.query(Progetto).filter_by(nome_progetto='Test Project').first()
+    assert project is not None
+    assert project.descrizione == 'This is a test project'
 
-    def tearDown(self):
-        # Remove database and test user
-        with app.app_context():
-            db.session.remove()
-            db.drop_all()
+def test_add_task(client):
+    print("Testing adding a task...")
+    db_session = get_db_session()
+    project = db_session.query(Progetto).filter_by(nome_progetto='Test Project').first()
+    project_id = project.id
+    db_session.close()
 
-    def test_login_success(self):
-        response = self.app.post('/login', data=dict(email="mario.rossi@example.com", password="password"), follow_redirects=True)
-        self.assertIn(b'Login successful!', response.data)
-
-    def test_login_failure(self):
-        response = self.app.post('/login', data=dict(email="mario.rossi@example.com", password="wrongpassword"), follow_redirects=True)
-        self.assertIn(b'Invalid email or password.', response.data)
-
-    def test_logout(self):
-        self.app.post('/login', data=dict(email="mario.rossi@example.com", password="password"), follow_redirects=True)
-        response = self.app.post('/logout', follow_redirects=True)
-        self.assertIn(b'You have logged out.', response.data)
-
-if __name__ == '__main__':
-    unittest.main()
+    client.post('/login', data={
+        'email': 'testuser@example.com',
+        'password': 'password'
+    })
+    response = client.post('/add_task', data={
+        'task_description': 'Test Task',
+        'task_status': 'Pending',
+        'task_priority': 'High',
+        'task_deadline': '2024-12-31',
+        'project_id': project_id
+    })
+    assert response.status_code == 302  # Redirects to dashboard
+    db_session = get_db_session()
+    task = db_session.query(Task).filter_by(descrizione='Test Task').first()
+    assert task is not None

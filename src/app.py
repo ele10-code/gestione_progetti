@@ -1,13 +1,17 @@
+import sys
+import os
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+
 from flask import Flask, render_template, request, redirect, url_for, flash
 from werkzeug.security import check_password_hash, generate_password_hash
 from flask_login import LoginManager, login_user, logout_user, login_required, current_user
-from database.database import SessionLocal
+from database.database import SessionLocal, init_db, get_db_session
 from models.utente import Utente
 from models.progetto import Progetto
 from models.task import Task
-from models.assegnazione import Assegnazione  # Importa correttamente il modello Assegnazione
+from models.assegnazione import Assegnazione
 from sqlalchemy.orm import joinedload
-import sys, datetime
+import datetime
 
 # Stampa e imposta il limite di ricorsione per identificare problemi di ricorsione infinita
 print(sys.getrecursionlimit())  # Print the current recursion limit
@@ -16,15 +20,16 @@ sys.setrecursionlimit(100)  # Set a lower limit to catch infinite recursion earl
 app = Flask(__name__)
 
 app.secret_key = 'a_very_secure_secret_key'
+app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql+mysqlconnector://admin:admin_password@localhost/GestioneProgetti'
+app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+
 # Initialize login manager for Flask-Login
 login_manager = LoginManager()
 login_manager.init_app(app)
 login_manager.login_view = 'login'  # Set the view that handles login
 
-# Function to get the current database session
-def get_db_session():
-    db = SessionLocal()
-    return db
+# Initialize the database
+init_db(app)
 
 @app.route('/')
 def home():
@@ -72,7 +77,6 @@ def task_to_dict(task):
         'scadenza': task.scadenza.strftime('%Y-%m-%d') if task.scadenza else None
     }
 
-
 @app.route('/dashboard')
 @login_required
 def dashboard():
@@ -96,7 +100,6 @@ def add_project():
     project_description = request.form.get('project_description')
     project_deadline = request.form.get('project_deadline')
 
-    # Validazione dei campi del form
     if not project_name:
         flash("Il nome del progetto deve esserci", 'danger')
         return redirect(url_for('dashboard'))
@@ -126,21 +129,20 @@ def add_project():
     flash('Progetto aggiunto con successo!', 'success')
     return redirect(url_for('dashboard'))
 
-
 @app.route('/add_task', methods=['POST'])
 @login_required
 def add_task():
     task_description = request.form.get('task_description')
     task_status = request.form.get('task_status')
     task_priority = request.form.get('task_priority')
-    task_deadline = request.form.get('task_deadline')  # Assicurati che questa riga sia presente
+    task_deadline = request.form.get('task_deadline')
     project_id = request.form.get('project_id')
     
     new_task = Task(
         descrizione=task_description,
         stato=task_status,
         priorita=task_priority,
-        scadenza=task_deadline,  # Assicurati che questa riga sia presente
+        scadenza=task_deadline,
         id_progetto=project_id
     )
     
@@ -172,14 +174,12 @@ def delete_task(task_id):
     db_session = get_db_session()
     print(f"Attempting to delete task with id {task_id}")
     
-    # Trova il task
     task = db_session.query(Task).filter_by(id=task_id).first()
     
     if task:
         print(f"Task found: {task.descrizione}")
         print(f"Task project id: {task.id_progetto}, current user id: {current_user.id}")
         
-        # Controlla se l'utente corrente è il responsabile del progetto del task
         project = db_session.query(Progetto).filter_by(id=task.id_progetto).first()
         
         if project:
@@ -201,9 +201,6 @@ def delete_task(task_id):
     db_session.close()
     return redirect(url_for('dashboard'))
 
-
-
-
 @app.route('/get_project_tasks/<int:project_id>', methods=['GET'])
 @login_required
 def get_project_tasks(project_id):
@@ -214,9 +211,9 @@ def get_project_tasks(project_id):
         db_session.close()
         return {'tasks': tasks}
     else:
+
         db_session.close()
         return {'error': 'Project not found or not authorized'}, 404
-
 
 @login_manager.user_loader
 def load_user(user_id):
