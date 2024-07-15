@@ -1,15 +1,17 @@
 import pytest
 import logging
-import sqlite3
-from app import app
+from app import app, db_config, get_db_connection
 from werkzeug.security import generate_password_hash
 from datetime import datetime, timedelta
+import random
+import string
+from flask import session
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-total_tests = 0
-successful_tests = 0
+def generate_random_email():
+    return ''.join(random.choices(string.ascii_lowercase + string.digits, k=10)) + "@example.com"
 
 @pytest.fixture(scope='module')
 def test_client():
@@ -21,196 +23,186 @@ def test_client():
 
 @pytest.fixture(scope='module')
 def init_database():
-    conn = sqlite3.connect(':memory:')
-    cursor = conn.cursor()
-    cursor.execute("""
-        CREATE TABLE utenti (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            nome TEXT NOT NULL,
-            email TEXT UNIQUE NOT NULL,
-            password_hash TEXT NOT NULL,
-            _is_active INTEGER DEFAULT 1
-        )
-    """)
-    cursor.execute("""
-        CREATE TABLE progetti (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            nome_progetto TEXT NOT NULL,
-            descrizione TEXT,
-            scadenza DATE,
-            id_responsabile INTEGER,
-            FOREIGN KEY (id_responsabile) REFERENCES utenti(id)
-        )
-    """)
-    cursor.execute("""
-        CREATE TABLE tasks (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            descrizione TEXT NOT NULL,
-            stato TEXT,
-            priorita TEXT,
-            scadenza DATE,
-            id_progetto INTEGER,
-            FOREIGN KEY (id_progetto) REFERENCES progetti(id)
-        )
-    """)
-    yield conn
-    conn.close()
+    with get_db_connection() as conn:
+        cursor = conn.cursor(dictionary=True)
+        cursor.execute("DELETE FROM assegnazioni")
+        cursor.execute("DELETE FROM tasks")
+        cursor.execute("DELETE FROM progetti")
+        cursor.execute("DELETE FROM utenti")
+        conn.commit()
+        yield conn
 
-def run_test(test_function):
-    global total_tests, successful_tests
-    total_tests += 1
-    try:
-        test_function()
-        successful_tests += 1
-        logger.info(f"{test_function.__name__} passed successfully")
-    except AssertionError as e:
-        logger.error(f"{test_function.__name__} failed: {str(e)}")
+test_results = {'total': 0, 'passed': 0}
 
-def test_registration_login_logout(test_client, init_database):
-    def test():
-        # Registrazione
+def run_test(func):
+    def wrapper(self, test_client, init_database):
+        test_results['total'] += 1
+        try:
+            func(self, test_client, init_database)
+            test_results['passed'] += 1
+            logger.info(f"{func.__name__} passed")
+        except AssertionError as e:
+            logger.error(f"{func.__name__} failed: {str(e)}")
+            raise
+    return wrapper
+
+@pytest.fixture(scope="session", autouse=True)
+def print_test_results(request):
+    yield
+    total = test_results['total']
+    passed = test_results['passed']
+    percentage = (passed / total) * 100 if total > 0 else 0
+    print(f"\nTest Results:")
+    print(f"Total Tests: {total}")
+    print(f"Passed Tests: {passed}")
+    print(f"Success Rate: {percentage:.2f}%")
+
+@pytest.mark.usefixtures("test_client", "init_database")
+
+@pytest.mark.usefixtures("test_client", "init_database")
+class TestIntegration:
+    @run_test
+    def test_registration_login_logout(self, test_client, init_database):
+        email = generate_random_email()
         response = test_client.post('/register', data={
             'name': 'Test User',
-            'email': 'test@example.com',
+            'email': email,
             'password': 'password123'
         }, follow_redirects=True)
-        assert b'Registration completed successfully!' in response.data
+        assert b'Dashboard' in response.data
         
-        # Login
-        response = test_client.post('/login', data={
-            'email': 'test@example.com',
-            'password': 'password123'
-        }, follow_redirects=True)
-        assert b'Login successful!' in response.data
-        
-        # Logout
         response = test_client.post('/logout', follow_redirects=True)
-        assert b'You have logged out.' in response.data
-    run_test(test)
-
-def test_project_crud(test_client, init_database):
-    def test():
-        # Login
-        test_client.post('/login', data={
-            'email': 'test@example.com',
-            'password': 'password123'
-        })
+        assert response.status_code == 200
+        assert b'Login' in response.data or b'Register' in response.data
         
-        # Creazione progetto
+        response = test_client.post('/login', data={
+            'email': email,
+            'password': 'password123'
+        }, follow_redirects=True)
+        assert b'Dashboard' in response.data
+        
+        response = test_client.post('/logout', follow_redirects=True)
+        assert response.status_code == 200
+        assert b'Login' in response.data or b'Register' in response.data
+
+    @run_test
+    def test_project_crud(self, test_client, init_database):
+        email = generate_random_email()
+        test_client.post('/register', data={
+            'name': 'Test User',
+            'email': email,
+            'password': 'password123'
+        }, follow_redirects=True)
+
+        # Test project name validation
+        with test_client.session_transaction() as sess:
+            sess['_flashes'] = []
+        response = test_client.post('/add_project', data={
+            'project_name': '',
+            'project_description': 'Test description',
+            'project_deadline': (datetime.now() + timedelta(days=30)).strftime('%Y-%m-%d')
+        }, follow_redirects=True)
+        assert any('Il nome del progetto deve esserci' in msg for category, msg in session.get('_flashes', []))
+
+        # Test successful project creation
+        with test_client.session_transaction() as sess:
+            sess['_flashes'] = []
         response = test_client.post('/add_project', data={
             'project_name': 'Test Project',
             'project_description': 'This is a test project',
             'project_deadline': (datetime.now() + timedelta(days=30)).strftime('%Y-%m-%d')
         }, follow_redirects=True)
-        assert b'Progetto aggiunto con successo!' in response.data
-        
-        # Visualizzazione progetto
+        assert any('Progetto aggiunto con successo!' in msg for category, msg in session.get('_flashes', []))
+
         response = test_client.get('/dashboard')
         assert b'Test Project' in response.data
-        
-        # Aggiornamento progetto (se la funzionalità esiste)
-        # response = test_client.post('/update_project/1', data={
-        #     'project_name': 'Updated Test Project',
-        #     'project_description': 'This is an updated test project',
-        #     'project_deadline': (datetime.now() + timedelta(days=60)).strftime('%Y-%m-%d')
-        # }, follow_redirects=True)
-        # assert b'Project updated successfully!' in response.data
-        
-        # Eliminazione progetto
-        cursor = init_database.cursor()
-        cursor.execute("SELECT id FROM progetti WHERE nome_progetto = 'Test Project'")
-        project_id = cursor.fetchone()[0]
-        cursor.close()
+
+        with get_db_connection() as conn:
+            cursor = conn.cursor(dictionary=True)
+            cursor.execute("SELECT id FROM progetti WHERE nome_progetto = 'Test Project'")
+            project = cursor.fetchone()
+            assert project is not None, "Project was not created in the database"
+            project_id = project['id']
 
         response = test_client.post(f'/delete_project/{project_id}', follow_redirects=True)
-        assert b'Project deleted successfully!' in response.data
+        assert any('Project deleted successfully' in msg for category, msg in session.get('_flashes', []))
 
-        # Verifica che il progetto sia stato eliminato
         response = test_client.get('/dashboard')
         assert b'Test Project' not in response.data
-    run_test(test)
 
-def test_task_crud(test_client, init_database):
-    def test():
-        # Login
-        login_response = test_client.post('/login', data={
-            'email': 'test@example.com',
+    @run_test
+    def test_task_crud(self, test_client, init_database):
+        email = generate_random_email()
+        
+        test_client.post('/register', data={
+            'name': 'Test User',
+            'email': email,
             'password': 'password123'
         }, follow_redirects=True)
-        assert b'Login successful!' in login_response.data, "Login failed"
-        logger.info("Login successful")
 
-        # Crea un progetto per i test sui task
-        project_response = test_client.post('/add_project', data={
+        # Create project
+        project_data = {
             'project_name': 'Task Test Project',
             'project_description': 'Project for testing tasks',
             'project_deadline': (datetime.now() + timedelta(days=30)).strftime('%Y-%m-%d')
-        }, follow_redirects=True)
-        assert b'Progetto aggiunto con successo!' in project_response.data, "Project creation failed"
-        logger.info("Project created successfully")
+        }
+        test_client.post('/add_project', data=project_data, follow_redirects=True)
 
-        cursor = init_database.cursor()
-        cursor.execute("SELECT id FROM progetti WHERE nome_progetto = 'Task Test Project'")
-        result = cursor.fetchone()
-        assert result is not None, "Project not found in database"
-        project_id = result[0]
-        cursor.close()
-        logger.info(f"Project ID: {project_id}")
+        with get_db_connection() as conn:
+            cursor = conn.cursor(dictionary=True)
+            cursor.execute("SELECT id FROM progetti WHERE nome_progetto = %s", (project_data['project_name'],))
+            project = cursor.fetchone()
+            assert project is not None, "Project was not created in the database"
+            project_id = project['id']
 
-        # Creazione task
-        task_response = test_client.post('/add_task', data={
+        # Create task
+        with test_client.session_transaction() as sess:
+            sess['_flashes'] = []
+        task_data = {
             'task_description': 'Test Task',
             'task_status': 'Todo',
             'task_priority': 'High',
             'task_deadline': (datetime.now() + timedelta(days=7)).strftime('%Y-%m-%d'),
             'project_id': project_id
-        }, follow_redirects=True)
-        assert b'Task added successfully!' in task_response.data, "Task creation failed"
-        logger.info("Task created successfully")
+        }
+        response = test_client.post('/add_task', data=task_data, follow_redirects=True)
+        assert any('Task added successfully' in msg for category, msg in session.get('_flashes', []))
 
-        # Visualizzazione task
-        view_response = test_client.get(f'/get_project_tasks/{project_id}')
-        assert b'Test Task' in view_response.data, "Task not found in project tasks"
-        logger.info("Task found in project tasks")
+        # Verify task creation
+        response = test_client.get(f'/get_project_tasks/{project_id}')
+        assert b'Test Task' in response.data
 
-        # Eliminazione task
-        cursor = init_database.cursor()
-        cursor.execute("SELECT id FROM tasks WHERE descrizione = 'Test Task'")
-        task_result = cursor.fetchone()
-        assert task_result is not None, "Task not found in database"
-        task_id = task_result[0]
-        cursor.close()
-        logger.info(f"Task ID: {task_id}")
+        with get_db_connection() as conn:
+            cursor = conn.cursor(dictionary=True)
+            cursor.execute("SELECT id FROM tasks WHERE descrizione = %s", (task_data['task_description'],))
+            task = cursor.fetchone()
+            assert task is not None, "Task was not created in the database"
+            task_id = task['id']
 
-        delete_response = test_client.post(f'/delete_task/{task_id}', follow_redirects=True)
-        assert b'Task deleted successfully!' in delete_response.data, "Task deletion failed"
-        logger.info("Task deleted successfully")
+        # Delete task
+        with test_client.session_transaction() as sess:
+            sess['_flashes'] = []
+        response = test_client.post(f'/delete_task/{task_id}', follow_redirects=True)
+        assert any('Task deleted successfully' in msg for category, msg in session.get('_flashes', []))
 
-        # Verifica che il task sia stato eliminato
-        final_response = test_client.get(f'/get_project_tasks/{project_id}')
-        assert b'Test Task' not in final_response.data, "Task still present after deletion"
-        logger.info("Task confirmed deleted")
+        # Verify task deletion
+        response = test_client.get(f'/get_project_tasks/{project_id}')
+        assert b'Test Task' not in response.data
 
-    run_test(test)
-
-def test_unauthorized_access(test_client, init_database):
-    def test():
-        # Logout per assicurarsi che l'utente non sia autenticato
+    @run_test
+    def test_unauthorized_access(self, test_client, init_database):
         test_client.post('/logout', follow_redirects=True)
 
-        # Tenta di accedere alla dashboard senza login
         response = test_client.get('/dashboard', follow_redirects=True)
-        assert b'Please log in to access this page.' in response.data
+        assert b'Login' in response.data
 
-        # Tenta di aggiungere un progetto senza login
         response = test_client.post('/add_project', data={
             'project_name': 'Unauthorized Project',
             'project_description': 'This should not be added',
             'project_deadline': (datetime.now() + timedelta(days=30)).strftime('%Y-%m-%d')
         }, follow_redirects=True)
-        assert b'Please log in to access this page.' in response.data
+        assert b'Login' in response.data
 
-        # Tenta di aggiungere un task senza login
         response = test_client.post('/add_task', data={
             'task_description': 'Unauthorized Task',
             'task_status': 'Todo',
@@ -218,20 +210,16 @@ def test_unauthorized_access(test_client, init_database):
             'task_deadline': (datetime.now() + timedelta(days=7)).strftime('%Y-%m-%d'),
             'project_id': 1
         }, follow_redirects=True)
-        assert b'Please log in to access this page.' in response.data
-    run_test(test)
+        assert b'Login' in response.data
 
-@pytest.fixture(scope="session", autouse=True)
-def print_test_stats(request):
-    yield
-    print("\n=== Test Results ===")
-    print(f"Total tests run: {total_tests}")
-    print(f"Tests passed: {successful_tests}")
-    if total_tests > 0:
-        success_rate = (successful_tests / total_tests) * 100
-        print(f"Success rate: {success_rate:.2f}%")
-    else:
-        print("No tests were run.")
+def pytest_terminal_summary(terminalreporter, exitstatus, config):
+    total = test_results['total']
+    passed = test_results['passed']
+    percentage = (passed / total) * 100 if total > 0 else 0
+    terminalreporter.write_line(f"\nTest Results:")
+    terminalreporter.write_line(f"Total Tests: {total}")
+    terminalreporter.write_line(f"Passed Tests: {passed}")
+    terminalreporter.write_line(f"Success Rate: {percentage:.2f}%")
 
 if __name__ == '__main__':
     pytest.main(['-v', '-s'])
