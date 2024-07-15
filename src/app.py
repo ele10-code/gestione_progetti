@@ -129,7 +129,7 @@ def dashboard():
     return render_template('dashboard.html', projects=projects_dict, tasks=tasks_dict)
 
 @app.route('/add_project', methods=['POST'])
-@login_required
+# @login_required
 def add_project():
     project_name = request.form.get('project_name')
     project_description = request.form.get('project_description')
@@ -144,25 +144,47 @@ def add_project():
         return redirect(url_for('dashboard'))
     
     if project_deadline:
-        project_deadline = datetime.datetime.strptime(project_deadline, '%Y-%m-%d')
-        if project_deadline <= datetime.datetime.now():
-            flash("Scadenza progetto deve essere maggiore di oggi", 'danger')
+        try:
+            project_deadline = datetime.datetime.strptime(project_deadline, '%Y-%m-%d')
+            if project_deadline <= datetime.datetime.now():
+                flash("Scadenza progetto deve essere maggiore di oggi", 'danger')
+                return redirect(url_for('dashboard'))
+        except ValueError:
+            flash("Formato data non valido. Utilizza YYYY-MM-DD", 'danger')
             return redirect(url_for('dashboard'))
 
+    try:
+        with get_db_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute(
+                '''
+                INSERT INTO progetti (nome_progetto, descrizione, scadenza, id_responsabile)
+                VALUES (%s, %s, %s, %s)
+                ''',
+                (project_name, project_description, project_deadline, current_user.id)
+            )
+            conn.commit()
+            cursor.close()
+    except Exception as e:
+        flash(f"Si è verificato un errore durante l'aggiunta del progetto: {str(e)}", 'danger')
+        return redirect(url_for('dashboard'))
+
+    flash('Progetto aggiunto con successo!', 'success')
+    return redirect(url_for('dashboard'))
+
+def add_project(project_name, project_description, project_deadline):
+    # Implementazione della funzione add_project
     with get_db_connection() as conn:
         cursor = conn.cursor()
         cursor.execute(
             '''
-            INSERT INTO progetti (nome_progetto, descrizione, scadenza, id_responsabile)
-            VALUES (%s, %s, %s, %s)
+            INSERT INTO progetti (nome_progetto, descrizione, scadenza)
+            VALUES (%s, %s, %s)
             ''',
-            (project_name, project_description, project_deadline, current_user.id)
+            (project_name, project_description, project_deadline)
         )
         conn.commit()
         cursor.close()
-    
-    flash('Progetto aggiunto con successo!', 'success')
-    return redirect(url_for('dashboard'))
 
 @app.route('/add_task', methods=['POST'])
 @login_required
