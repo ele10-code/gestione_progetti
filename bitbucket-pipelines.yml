@@ -1,17 +1,29 @@
 image: python:3.8
 
+definitions:
+  services:
+    docker:
+      memory: 2048
+    mysql:
+      image: mysql:5.7
+      environment:
+        MYSQL_DATABASE: 'GestioneProgetti'
+        MYSQL_ROOT_PASSWORD: $DB_PASSWORD
+
 pipelines:
   default:
     - step:
         name: Update Requirements
         script:
-          - chmod +x update_requirements.sh
-          - ./update_requirements.sh
-          - git config --global user.email "ci-bot@example.com"
-          - git config --global user.name "CI Bot"
-          - git add requirements.txt
-          - git commit -m "Update requirements.txt" || true
-          - git push origin HEAD:$BITBUCKET_BRANCH
+          - pip install pipreqs
+          - pipreqs --force .
+          - git diff --exit-code requirements.txt || {
+              git config --global user.email "ci-bot@example.com"
+              git config --global user.name "CI Bot"
+              git add requirements.txt
+              git commit -m "Update requirements.txt [skip ci]"
+              git push origin HEAD:$BITBUCKET_BRANCH
+            }
     - parallel:
         - step:
             name: Test
@@ -20,17 +32,16 @@ pipelines:
             caches:
               - pip
             script:
-              - if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
-              - pip install pytest
+              - pip install -r requirements.txt
               - pytest -v tests/* --junitxml=test-reports/report.xml
             after-script:
               - pip install coverage
               - coverage run -m pytest tests/
               - coverage report
+            artifacts:
+              - test-reports/**
         - step:
-            name: Lint code
-            caches:
-              - pip
+            name: Lint
             script:
               - pip install flake8
               - flake8 . --extend-exclude=dist,build --show-source --statistics
@@ -45,37 +56,29 @@ pipelines:
             - pip
           script:
             - pip install -r requirements.txt
-            - pytest tests/ -v
+            - pytest -v tests/* --junitxml=test-reports/report.xml
           after-script:
             - pip install coverage
             - coverage run -m pytest tests/
             - coverage report
-
+          artifacts:
+            - test-reports/**
       - step:
-          name: Deploy with Docker
-          deployment: production
+          name: Build and Push Docker Image
           services:
             - docker
           script:
-            - echo "Building Docker image..."
-            - docker build -t $BITBUCKET_REPO_SLUG .
-            - echo "Tagging Docker image..."
-            - docker tag $BITBUCKET_REPO_SLUG $DOCKER_REGISTRY/$BITBUCKET_REPO_SLUG:$BITBUCKET_COMMIT
-            - echo "Pushing Docker image..."
+            - echo $DOCKER_PASSWORD | docker login --username $DOCKER_USERNAME --password-stdin
+            - docker build -t $DOCKER_REGISTRY/$BITBUCKET_REPO_SLUG:$BITBUCKET_COMMIT .
             - docker push $DOCKER_REGISTRY/$BITBUCKET_REPO_SLUG:$BITBUCKET_COMMIT
-            - echo "Deploying to server..."
-            - pipe: atlassian/ssh-run:0.2.2
-              variables:
-                SSH_USER: $SERVER_USER
-                SERVER: $SERVER_IP
-                COMMAND: 'docker pull $DOCKER_REGISTRY/$BITBUCKET_REPO_SLUG:$BITBUCKET_COMMIT && docker stop $CONTAINER_NAME || true && docker rm $CONTAINER_NAME || true && docker run -d --name $CONTAINER_NAME $DOCKER_REGISTRY/$BITBUCKET_REPO_SLUG:$BITBUCKET_COMMIT'
-
-definitions:
-  services:
-    mysql:
-      image: mysql:5.7
-      variables:
-        MYSQL_DATABASE: 'GestioneProgetti'
-        MYSQL_ROOT_PASSWORD: $DB_PASSWORD
-    docker:
-      memory: 2048
+      - step:
+          name: Local Deployment
+          script:
+            - echo "Pulling the latest image..."
+            - docker pull $DOCKER_REGISTRY/$BITBUCKET_REPO_SLUG:$BITBUCKET_COMMIT
+            - echo "Stopping and removing old container if it exists..."
+            - docker stop $CONTAINER_NAME || true
+            - docker rm $CONTAINER_NAME || true
+            - echo "Running new container..."
+            - docker run -d --name $CONTAINER_NAME -p 5000:5000 $DOCKER_REGISTRY/$BITBUCKET_REPO_SLUG:$BITBUCKET_COMMIT
+            - echo "Application deployed locally. Access it at http://localhost:5000"
