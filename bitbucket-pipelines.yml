@@ -2,6 +2,16 @@ image: python:3.8
 
 pipelines:
   default:
+    - step:
+        name: Update Requirements
+        script:
+          - chmod +x update_requirements.sh
+          - ./update_requirements.sh
+          - git config --global user.email "ci-bot@example.com"
+          - git config --global user.name "CI Bot"
+          - git add requirements.txt
+          - git commit -m "Update requirements.txt" || true
+          - git push origin HEAD:$BITBUCKET_BRANCH
     - parallel:
         - step:
             name: Test
@@ -22,7 +32,6 @@ pipelines:
             caches:
               - pip
             script:
-              # Enforce style consistency across Python projects https://flake8.pycqa.org
               - pip install flake8
               - flake8 . --extend-exclude=dist,build --show-source --statistics
 
@@ -45,11 +54,21 @@ pipelines:
       - step:
           name: Deploy with Docker
           deployment: production
+          services:
+            - docker
           script:
-              - docker build -t your-app-image .
-              - docker tag your-app-image your-docker-registry/your-app-image:latest
-              - docker push your-docker-registry/your-app-image:latest
-              - ssh user@your-server-ip "docker pull your-docker-registry/your-app-image:latest && docker stop your-app-container && docker rm your-app-container && docker run -d --name your-app-container your-docker-registry/your-app-image:latest"
+            - echo "Building Docker image..."
+            - docker build -t $BITBUCKET_REPO_SLUG .
+            - echo "Tagging Docker image..."
+            - docker tag $BITBUCKET_REPO_SLUG $DOCKER_REGISTRY/$BITBUCKET_REPO_SLUG:$BITBUCKET_COMMIT
+            - echo "Pushing Docker image..."
+            - docker push $DOCKER_REGISTRY/$BITBUCKET_REPO_SLUG:$BITBUCKET_COMMIT
+            - echo "Deploying to server..."
+            - pipe: atlassian/ssh-run:0.2.2
+              variables:
+                SSH_USER: $SERVER_USER
+                SERVER: $SERVER_IP
+                COMMAND: 'docker pull $DOCKER_REGISTRY/$BITBUCKET_REPO_SLUG:$BITBUCKET_COMMIT && docker stop $CONTAINER_NAME || true && docker rm $CONTAINER_NAME || true && docker run -d --name $CONTAINER_NAME $DOCKER_REGISTRY/$BITBUCKET_REPO_SLUG:$BITBUCKET_COMMIT'
 
 definitions:
   services:
@@ -57,4 +76,6 @@ definitions:
       image: mysql:5.7
       variables:
         MYSQL_DATABASE: 'GestioneProgetti'
-        MYSQL_ROOT_PASSWORD: 'root_password'
+        MYSQL_ROOT_PASSWORD: $DB_PASSWORD
+    docker:
+      memory: 2048
