@@ -10,13 +10,6 @@ import datetime, os
 app = Flask(__name__)
 app.secret_key = 'a_very_secure_secret_key'
 
-""" # Configurazione del database
-db_config = {
-    'user': 'admin',
-    'password': 'admin_password',
-    'host': 'localhost',
-    'database': 'GestioneProgetti'
-} """
 
 # Configurazione del database utilizzando variabili d'ambiente
 db_config = {
@@ -30,12 +23,16 @@ db_config = {
 def get_db_connection():
     conn = None
     try:
-        conn = mysql.connector.connect(**db_config)
+        conn = mysql.connector.connect(
+            host=os.environ.get('DB_HOST', 'localhost'),
+            user=os.environ.get('DB_USER'),
+            password=os.environ.get('DB_PASSWORD'),
+            database=os.environ.get('DB_NAME', 'GestioneProgetti')
+        )
         yield conn
-    except Error as e:
-        print(f"Error: {e}")
-        if conn:
-            conn.close()
+    except mysql.connector.Error as e:
+        print(f"Error connecting to MySQL: {e}")
+        raise
     finally:
         if conn and conn.is_connected():
             conn.close()
