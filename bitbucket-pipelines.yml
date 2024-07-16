@@ -1,24 +1,60 @@
-#  Template python-build
-
-#  This template allows you to validate your python code.
-#  The workflow allows running tests and code linting on the default branch.
-
 image: python:3.8
 
 pipelines:
   default:
     - parallel:
+        - step:
+            name: Test
+            services:
+              - mysql
+            caches:
+              - pip
+            script:
+              - if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+              - pip install pytest
+              - pytest -v tests/* --junitxml=test-reports/report.xml
+            after-script:
+              - pip install coverage
+              - coverage run -m pytest tests/
+              - coverage report
+        - step:
+            name: Lint code
+            caches:
+              - pip
+            script:
+              # Enforce style consistency across Python projects https://flake8.pycqa.org
+              - pip install flake8
+              - flake8 . --extend-exclude=dist,build --show-source --statistics
+
+  branches:
+    main:
       - step:
           name: Test
+          services:
+            - mysql
           caches:
             - pip
           script:
-            - if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
-            - pip install pytest
-            - pytest -v tests/* --junitxml=test-reports/report.xml
+            - pip install -r requirements.txt
+            - pytest tests/ -v
+          after-script:
+            - pip install coverage
+            - coverage run -m pytest tests/
+            - coverage report
+
       - step:
-          name: Lint code
+          name: Deploy with Docker
+          deployment: production
           script:
-            # Enforce style consistency across Python projects https://flake8.pycqa.org
-            - pip install flake8
-            - flake8 . --extend-exclude=dist,build --show-source --statistics
+              - docker build -t your-app-image .
+              - docker tag your-app-image your-docker-registry/your-app-image:latest
+              - docker push your-docker-registry/your-app-image:latest
+              - ssh user@your-server-ip "docker pull your-docker-registry/your-app-image:latest && docker stop your-app-container && docker rm your-app-container && docker run -d --name your-app-container your-docker-registry/your-app-image:latest"
+
+definitions:
+  services:
+    mysql:
+      image: mysql:5.7
+      variables:
+        MYSQL_DATABASE: 'GestioneProgetti'
+        MYSQL_ROOT_PASSWORD: 'root_password'

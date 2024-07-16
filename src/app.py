@@ -5,17 +5,25 @@ import mysql.connector
 from mysql.connector import Error
 from contextlib import contextmanager
 from models.utente import Utente  # Importa il modello Utente
-import datetime
+import datetime, os
 
 app = Flask(__name__)
 app.secret_key = 'a_very_secure_secret_key'
 
-# Configurazione del database
+""" # Configurazione del database
 db_config = {
     'user': 'admin',
     'password': 'admin_password',
     'host': 'localhost',
     'database': 'GestioneProgetti'
+} """
+
+# Configurazione del database utilizzando variabili d'ambiente
+db_config = {
+    'user': os.environ.get('MYSQL_USER', 'admin'),
+    'password': os.environ.get('MYSQL_PASSWORD', 'admin_password'),
+    'host': os.environ.get('MYSQL_HOST', 'localhost'),
+    'database': os.environ.get('MYSQL_DATABASE', 'GestioneProgetti')
 }
 
 @contextmanager
@@ -35,7 +43,7 @@ def get_db_connection():
 # Initialize login manager for Flask-Login
 login_manager = LoginManager()
 login_manager.init_app(app)
-login_manager.login_view = 'login'  # Set the view that handles login
+login_manager.login_view = 'login' 
 
 @app.route('/')
 def home():
