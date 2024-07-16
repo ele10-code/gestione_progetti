@@ -9,44 +9,40 @@ definitions:
       environment:
         MYSQL_DATABASE: 'TestGestioneProgetti'
         MYSQL_ROOT_PASSWORD: $DB_PASSWORD
+        MYSQL_USER: $DB_USER
+        MYSQL_PASSWORD: $DB_USER_PASSWORD
 
 pipelines:
   default:
     - step:
-        name: Update Requirements
+        name: Test
+        services:
+          - mysql
+        caches:
+          - pip
         script:
-          - pip install pipreqs
-          - pipreqs --force .
-          - git diff --exit-code requirements.txt || {
-              git config --global user.email "ci-bot@example.com"
-              git config --global user.name "CI Bot"
-              git add requirements.txt
-              git commit -m "Update requirements.txt [skip ci]"
-              git push origin HEAD:$BITBUCKET_BRANCH
-            }
-    - parallel:
-        - step:
-            name: Test
-            services:
-              - mysql
-            caches:
-              - pip
-            script:
-              - pip install -r requirements.txt
-              - echo "Current directory structure:"
-              - find . -type d | sort | sed -e "s/[^-][^\/]*\//  |/g" -e "s/|\([^ ]\)/|-\1/"
-              - pytest -v --junitxml=test-reports/report.xml
-            after-script:
-              - pip install coverage
-              - coverage run -m pytest
-              - coverage report
-            artifacts:
-              - test-reports/**
-        - step:
-            name: Lint
-            script:
-              - pip install flake8
-              - flake8 . --extend-exclude=dist,build --show-source --statistics
+          - export TEST_DB_HOST=127.0.0.1
+          - export TEST_DB_NAME=$DB_NAME
+          - export TEST_DB_USER=$DB_USER
+          - export TEST_DB_PASSWORD=$DB_USER_PASSWORD
+          - pip install -r requirements.txt
+          - echo "Current directory structure:"
+          - find . -type d | sort | sed -e "s/[^-][^\/]*\//  |/g" -e "s/|\([^ ]\)/|-\1/"
+          - echo "Content of src directory:"
+          - ls -R src/
+          - echo "Python version:"
+          - python --version
+          - echo "Installed packages:"
+          - pip list
+          - echo "Database connection test:"
+          - python -c "import mysql.connector; print(mysql.connector.connect(host='$TEST_DB_HOST', user='$TEST_DB_USER', password='$TEST_DB_PASSWORD', database='$TEST_DB_NAME'))"
+          - pytest -v src/tests --junitxml=test-reports/report.xml
+        after-script:
+          - pip install coverage
+          - coverage run -m pytest src/tests
+          - coverage report
+        artifacts:
+          - test-reports/**
 
   branches:
     main:
@@ -57,37 +53,16 @@ pipelines:
           caches:
             - pip
           script:
-            # Configurazione delle variabili d'ambiente per i test
             - export TEST_DB_HOST=127.0.0.1
             - export TEST_DB_NAME=$DB_NAME
             - export TEST_DB_USER=$DB_USER
             - export TEST_DB_PASSWORD=$DB_USER_PASSWORD
-            
-            # Installazione delle dipendenze
             - pip install -r requirements.txt
-            
-            # Comandi di debug
-            - echo "Current directory structure:"
-            - find . -type d | sort | sed -e "s/[^-][^\/]*\//  |/g" -e "s/|\([^ ]\)/|-\1/"
-            - echo "Content of test directory:"
-            - ls -R tests/
-            - echo "Python version:"
-            - python --version
-            - echo "Installed packages:"
-            - pip list
-            
-            # Test di connessione al database
-            - echo "Database connection test:"
-            - python -c "import mysql.connector; print(mysql.connector.connect(host='$TEST_DB_HOST', user='$TEST_DB_USER', password='$TEST_DB_PASSWORD', database='$TEST_DB_NAME'))"
-            
-            # Esecuzione dei test
-            - pytest -v --junitxml=test-reports/report.xml
-          
+            - pytest -v src/tests --junitxml=test-reports/report.xml
           after-script:
             - pip install coverage
-            - coverage run -m pytest
+            - coverage run -m pytest src/tests
             - coverage report
-          
           artifacts:
             - test-reports/**
       - step:
@@ -99,13 +74,21 @@ pipelines:
             - docker build -t $DOCKER_REGISTRY/$BITBUCKET_REPO_SLUG:$BITBUCKET_COMMIT .
             - docker push $DOCKER_REGISTRY/$BITBUCKET_REPO_SLUG:$BITBUCKET_COMMIT
       - step:
-          name: Local Deployment
+          name: Deploy to Production
+          deployment: production
           script:
-            - echo "Pulling the latest image..."
-            - docker pull $DOCKER_REGISTRY/$BITBUCKET_REPO_SLUG:$BITBUCKET_COMMIT
-            - echo "Stopping and removing old container if it exists..."
-            - docker stop $CONTAINER_NAME || true
-            - docker rm $CONTAINER_NAME || true
-            - echo "Running new container..."
-            - docker run -d --name $CONTAINER_NAME -p 5000:5000 $DOCKER_REGISTRY/$BITBUCKET_REPO_SLUG:$BITBUCKET_COMMIT
-            - echo "Application deployed locally. Access it at http://localhost:5000"
+            - pipe: atlassian/ssh-run:0.4.1
+              variables:
+                SSH_USER: $SERVER_USER
+                SERVER: $SERVER_IP
+                MODE: 'command'
+                COMMAND: >
+                  docker pull $DOCKER_REGISTRY/$BITBUCKET_REPO_SLUG:$BITBUCKET_COMMIT &&
+                  docker stop $CONTAINER_NAME || true &&
+                  docker rm $CONTAINER_NAME || true &&
+                  docker run -d --name $CONTAINER_NAME -p 5000:5000 
+                  -e DB_USER=$DB_USER 
+                  -e DB_PASSWORD=$DB_USER_PASSWORD 
+                  -e DB_NAME=$DB_NAME 
+                  -e DB_HOST=$DB_HOST 
+                  $DOCKER_REGISTRY/$BITBUCKET_REPO_SLUG:$BITBUCKET_COMMIT
