@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, redirect, url_for, flash
+from flask import Flask, render_template, request, redirect, url_for, flash, abort, jsonify
 from werkzeug.security import check_password_hash, generate_password_hash
 from flask_login import LoginManager, login_user, logout_user, login_required, current_user
 import mysql.connector
@@ -210,6 +210,134 @@ def add_task():
     flash('Task added successfully!', 'success')
     return redirect(url_for('dashboard'))
 
+
+@app.route('/edit_project/<int:project_id>', methods=['POST'])
+@login_required
+def edit_project(project_id):
+    project_name = request.form.get('project_name')
+    project_description = request.form.get('project_description')
+    project_deadline = request.form.get('project_deadline')
+
+    if not project_name or not project_description or not project_deadline:
+        flash("Tutti i campi del progetto sono obbligatori", 'danger')
+        return redirect(url_for('dashboard'))
+
+    try:
+        project_deadline = datetime.datetime.strptime(project_deadline, '%Y-%m-%d')
+        if project_deadline <= datetime.datetime.now():
+            flash("Scadenza progetto deve essere maggiore di oggi", 'danger')
+            return redirect(url_for('dashboard'))
+    except ValueError:
+        flash("Formato data non valido. Utilizza YYYY-MM-DD", 'danger')
+        return redirect(url_for('dashboard'))
+
+    with get_db_connection() as conn:
+        cursor = conn.cursor()
+        cursor.execute(
+            '''
+            UPDATE progetti
+            SET nome_progetto = %s, descrizione = %s, scadenza = %s
+            WHERE id = %s AND id_responsabile = %s
+            ''',
+            (project_name, project_description, project_deadline, project_id, current_user.id)
+        )
+        if cursor.rowcount == 0:
+            abort(404)  # Project not found or user not authorized
+        conn.commit()
+        cursor.close()
+
+    flash('Progetto modificato con successo!', 'success')
+    return redirect(url_for('dashboard'))
+
+@app.route('/edit_task/<int:task_id>', methods=['POST'])
+@login_required
+def edit_task(task_id):
+    task_description = request.form.get('task_description')
+    task_status = request.form.get('task_status')
+    task_priority = request.form.get('task_priority')
+    task_deadline = request.form.get('task_deadline')
+    project_id = request.form.get('project_id')
+
+    if not task_description or not task_status or not task_priority or not task_deadline or not project_id:
+        flash("Tutti i campi del task sono obbligatori", 'danger')
+        return redirect(url_for('dashboard'))
+
+    try:
+        task_deadline = datetime.datetime.strptime(task_deadline, '%Y-%m-%d')
+    except ValueError:
+        flash("Formato data non valido. Utilizza YYYY-MM-DD", 'danger')
+        return redirect(url_for('dashboard'))
+
+    with get_db_connection() as conn:
+        cursor = conn.cursor()
+        # Check if the user is authorized to edit this task
+        cursor.execute(
+            '''
+            SELECT p.id_responsabile
+            FROM tasks t
+            JOIN progetti p ON t.id_progetto = p.id
+            WHERE t.id = %s
+            ''',
+            (task_id,)
+        )
+        result = cursor.fetchone()
+        if not result or result[0] != current_user.id:
+            abort(404)  # Task not found or user not authorized
+
+        cursor.execute(
+            '''
+            UPDATE tasks
+            SET descrizione = %s, stato = %s, priorita = %s, scadenza = %s, id_progetto = %s
+            WHERE id = %s
+            ''',
+            (task_description, task_status, task_priority, task_deadline, project_id, task_id)
+        )
+        conn.commit()
+        cursor.close()
+
+    flash('Task modificato con successo!', 'success')
+    return redirect(url_for('dashboard'))
+
+@app.route('/update_task_status/<int:task_id>', methods=['POST'])
+@login_required
+def update_task_status(task_id):
+    new_status = request.form.get('new_status')
+
+    if not new_status:
+        flash("Il nuovo stato del task è obbligatorio", 'danger')
+        return redirect(url_for('dashboard'))
+
+    with get_db_connection() as conn:
+        cursor = conn.cursor()
+        # Check if the user is authorized to update this task
+        cursor.execute(
+            '''
+            SELECT p.id_responsabile
+            FROM tasks t
+            JOIN progetti p ON t.id_progetto = p.id
+            WHERE t.id = %s
+            ''',
+            (task_id,)
+        )
+        result = cursor.fetchone()
+        if not result or result[0] != current_user.id:
+            abort(404)  # Task not found or user not authorized
+
+        cursor.execute(
+            '''
+            UPDATE tasks
+            SET stato = %s
+            WHERE id = %s
+            ''',
+            (new_status, task_id)
+        )
+        conn.commit()
+        cursor.close()
+
+    flash('Stato del task aggiornato con successo', 'success')
+    return redirect(url_for('dashboard'))
+
+# Modifica la funzione delete_project per gestire progetti non esistenti
 @app.route('/delete_project/<int:project_id>', methods=['POST'])
 @login_required
 def delete_project(project_id):
@@ -219,39 +347,46 @@ def delete_project(project_id):
             'DELETE FROM progetti WHERE id = %s AND id_responsabile = %s',
             (project_id, current_user.id)
         )
+        if cursor.rowcount == 0:
+            abort(404)  # Project not found or user not authorized
         conn.commit()
         cursor.close()
     
     flash('Project deleted successfully!', 'success')
     return redirect(url_for('dashboard'))
 
+# Modifica la funzione delete_task per gestire task non esistenti
 @app.route('/delete_task/<int:task_id>', methods=['POST'])
 @login_required
 def delete_task(task_id):
     with get_db_connection() as conn:
         cursor = conn.cursor()
         cursor.execute('SELECT id_progetto FROM tasks WHERE id = %s', (task_id,))
-        task_project_id = cursor.fetchone()[0]
-        if task_project_id:
-            cursor.execute('SELECT id_responsabile FROM progetti WHERE id = %s', (task_project_id,))
-            project_responsabile_id = cursor.fetchone()[0]
-            if project_responsabile_id == current_user.id:
-                cursor.execute('DELETE FROM tasks WHERE id = %s', (task_id,))
-                conn.commit()
-                flash('Task deleted successfully!', 'success')
-            else:
-                flash('User not authorized to delete this task.', 'danger')
-        else:
-            flash('Task not found.', 'danger')
+        result = cursor.fetchone()
+        if not result:
+            abort(404)  # Task not found
+        task_project_id = result[0]
+        cursor.execute('SELECT id_responsabile FROM progetti WHERE id = %s', (task_project_id,))
+        result = cursor.fetchone()
+        if not result or result[0] != current_user.id:
+            abort(404)  # User not authorized to delete this task
+        cursor.execute('DELETE FROM tasks WHERE id = %s', (task_id,))
+        conn.commit()
         cursor.close()
 
+    flash('Task deleted successfully!', 'success')
     return redirect(url_for('dashboard'))
+
 
 @app.route('/get_project_tasks/<int:project_id>', methods=['GET'])
 @login_required
 def get_project_tasks(project_id):
     with get_db_connection() as conn:
         cursor = conn.cursor()
+        cursor.execute('SELECT id_responsabile FROM progetti WHERE id = %s', (project_id,))
+        result = cursor.fetchone()
+        if not result or result[0] != current_user.id:
+            abort(404)  # Project not found or user not authorized
         cursor.execute(
             '''
             SELECT t.id, t.descrizione, t.stato, t.priorita, t.scadenza
@@ -272,6 +407,18 @@ def get_project_tasks(project_id):
         } for task in tasks
     ]
     return {'tasks': tasks_dict}
+
+# Aggiungi un gestore per l'errore 404
+@app.errorhandler(404)
+def not_found_error(error):
+    if request.path.startswith('/get_project_tasks/'):
+        return jsonify({"error": "Progetto non trovato"}), 404
+    elif request.path.startswith('/delete_project/'):
+        return jsonify({"error": "Progetto non trovato"}), 404
+    elif request.path.startswith('/delete_task/'):
+        return jsonify({"error": "Task non trovato"}), 404
+    else:
+        return render_template('404.html'), 404
 
 @login_manager.user_loader
 def load_user(user_id):

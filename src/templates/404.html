@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>404 - Pagina non trovata</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <style>
+        .error-container {
+            text-align: center;
+            padding: 50px;
+            margin-top: 50px;
+        }
+        .error-code {
+            font-size: 72px;
+            font-weight: bold;
+            color: #e74c3c;
+        }
+        .error-message {
+            font-size: 24px;
+            margin: 20px 0;
+        }
+        .back-link {
+            display: inline-block;
+            margin-top: 20px;
+            padding: 10px 20px;
+            background-color: #3498db;
+            color: white;
+            text-decoration: none;
+            border-radius: 5px;
+            transition: background-color 0.3s;
+        }
+        .back-link:hover {
+            background-color: #2980b9;
+        }
+    </style>
+</head>
+<body>
+    <div class="error-container">
+        <div class="error-code">404</div>
+        <div class="error-message">Oops! La pagina che stai cercando non esiste.</div>
+        <p>Ci dispiace, ma la pagina che hai richiesto non è stata trovata. Potrebbe essere stata spostata, eliminata o non essere mai esistita.</p>
+        <a href="{{ url_for('home') }}" class="back-link">Torna alla home</a>
+    </div>
+</body>
+</html>
