@@ -7,7 +7,7 @@ definitions:
     mysql:
       image: mysql:5.7
       environment:
-        MYSQL_DATABASE: 'GestioneProgetti'
+        MYSQL_DATABASE: 'TestGestioneProgetti'
         MYSQL_ROOT_PASSWORD: $DB_PASSWORD
 
 pipelines:
