@@ -57,14 +57,37 @@ pipelines:
           caches:
             - pip
           script:
+            # Configurazione delle variabili d'ambiente per i test
+            - export TEST_DB_HOST=127.0.0.1
+            - export TEST_DB_NAME=$DB_NAME
+            - export TEST_DB_USER=$DB_USER
+            - export TEST_DB_PASSWORD=$DB_USER_PASSWORD
+            
+            # Installazione delle dipendenze
             - pip install -r requirements.txt
+            
+            # Comandi di debug
             - echo "Current directory structure:"
             - find . -type d | sort | sed -e "s/[^-][^\/]*\//  |/g" -e "s/|\([^ ]\)/|-\1/"
+            - echo "Content of test directory:"
+            - ls -R tests/
+            - echo "Python version:"
+            - python --version
+            - echo "Installed packages:"
+            - pip list
+            
+            # Test di connessione al database
+            - echo "Database connection test:"
+            - python -c "import mysql.connector; print(mysql.connector.connect(host='$TEST_DB_HOST', user='$TEST_DB_USER', password='$TEST_DB_PASSWORD', database='$TEST_DB_NAME'))"
+            
+            # Esecuzione dei test
             - pytest -v --junitxml=test-reports/report.xml
+          
           after-script:
             - pip install coverage
             - coverage run -m pytest
             - coverage report
+          
           artifacts:
             - test-reports/**
       - step:
