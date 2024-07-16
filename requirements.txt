@@ -1,5 +1,4 @@
 coverage==7.4.4
-Flask==2.0.1
 Flask==3.0.3
 Flask_Login==0.6.3
 hypothesis==6.103.0
