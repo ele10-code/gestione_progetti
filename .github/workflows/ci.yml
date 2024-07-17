@@ -37,14 +37,33 @@ jobs:
         pip install -r requirements.txt
 
     - name: Wait for MySQL to start
-      run: sleep 30
+      run: sleep 60  # Aumenta il tempo di attesa a 60 secondi
+
+    - name: Set up database
+      env:
+        MYSQL_HOST: 127.0.0.1
+        MYSQL_USER: ${{ secrets.DB_USER }}
+        MYSQL_PASSWORD: ${{ secrets.DB_USER_PASSWORD }}
+        MYSQL_DATABASE: 'TestGestioneProgetti'
+      run: |
+        mysql -h $MYSQL_HOST -u $MYSQL_USER -p$MYSQL_PASSWORD -e "CREATE DATABASE IF NOT EXISTS TestGestioneProgetti;"
+        mysql -h $MYSQL_HOST -u $MYSQL_USER -p$MYSQL_PASSWORD TestGestioneProgetti < gestione_progetti/src/sql/script.sql
+
+    - name: Debug MySQL Connection
+      env:
+        MYSQL_HOST: 127.0.0.1
+        MYSQL_USER: ${{ secrets.DB_USER }}
+        MYSQL_PASSWORD: ${{ secrets.DB_USER_PASSWORD }}
+        MYSQL_DATABASE: 'TestGestioneProgetti'
+      run: |
+        python -c "import mysql.connector; conn = mysql.connector.connect(host='$MYSQL_HOST', user='$MYSQL_USER', password='$MYSQL_PASSWORD', database='$MYSQL_DATABASE'); print('Connected to MySQL:', conn)"
 
     - name: Run tests
       env:
-        TEST_DB_HOST: 127.0.0.1
-        TEST_DB_USER: ${{ secrets.DB_USER }}
-        TEST_DB_PASSWORD: ${{ secrets.DB_USER_PASSWORD }}
-        TEST_DB_NAME: 'TestGestioneProgetti'
+        MYSQL_HOST: 127.0.0.1
+        MYSQL_USER: ${{ secrets.DB_USER }}
+        MYSQL_PASSWORD: ${{ secrets.DB_USER_PASSWORD }}
+        MYSQL_DATABASE: 'TestGestioneProgetti'
       run: |
         pytest --junitxml=reports/test-report.xml --cov=./ --cov-report=xml --cov-report=html
 
