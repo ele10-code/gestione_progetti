@@ -39,6 +39,9 @@ jobs:
     - name: Wait for MySQL to start
       run: sleep 60  # Aumenta il tempo di attesa a 60 secondi
 
+    - name: Verify SQL script path
+      run: ls -l gestione_progetti/sql
+
     - name: Set up database
       env:
         MYSQL_HOST: 127.0.0.1
@@ -47,7 +50,7 @@ jobs:
         MYSQL_DATABASE: 'TestGestioneProgetti'
       run: |
         mysql -h $MYSQL_HOST -u $MYSQL_USER -p$MYSQL_PASSWORD -e "CREATE DATABASE IF NOT EXISTS TestGestioneProgetti;"
-        mysql -h $MYSQL_HOST -u $MYSQL_USER -p$MYSQL_PASSWORD TestGestioneProgetti < gestione_progetti/src/sql/test_database_setup.sql
+        mysql -h $MYSQL_HOST -u $MYSQL_USER -p$MYSQL_PASSWORD TestGestioneProgetti < gestione_progetti/sql/test_database_setup.sql
 
     - name: Debug MySQL Connection
       env:
