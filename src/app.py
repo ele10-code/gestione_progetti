@@ -16,7 +16,7 @@ db_config = {
     'user': os.environ.get('MYSQL_USER', 'admin'),
     'password': os.environ.get('MYSQL_PASSWORD', 'admin_password'),
     'host': os.environ.get('MYSQL_HOST', 'localhost'),
-    'database': os.environ.get('MYSQL_DATABASE', 'GestioneProgetti')
+    'database': os.environ.get('MYSQL_DATABASE', 'TestGestioneProgetti')
 }
 
 @contextmanager
