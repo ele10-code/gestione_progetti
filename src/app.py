@@ -11,7 +11,7 @@ app = Flask(__name__)
 app.secret_key = 'a_very_secure_secret_key'
 
 
-# Configurazione del database utilizzando variabili d'ambiente
+# Database configuration
 db_config = {
     'user': os.environ.get('MYSQL_USER', 'admin'),
     'password': os.environ.get('MYSQL_PASSWORD', 'admin_password'),
@@ -23,12 +23,7 @@ db_config = {
 def get_db_connection():
     conn = None
     try:
-        conn = mysql.connector.connect(
-            host=os.environ.get('DB_HOST', 'localhost'),
-            user=os.environ.get('DB_USER'),
-            password=os.environ.get('DB_PASSWORD'),
-            database=os.environ.get('DB_NAME', 'GestioneProgetti')
-        )
+        conn = mysql.connector.connect(**db_config)
         yield conn
     except mysql.connector.Error as e:
         print(f"Error connecting to MySQL: {e}")
