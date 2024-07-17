@@ -51,6 +51,8 @@ jobs:
       run: |
         mysql -h $MYSQL_HOST -u $MYSQL_USER -p$MYSQL_PASSWORD -e "CREATE DATABASE IF NOT EXISTS TestGestioneProgetti;"
         mysql -h $MYSQL_HOST -u $MYSQL_USER -p$MYSQL_PASSWORD TestGestioneProgetti < sql/test_database_setup.sql
+        mysql -h $MYSQL_HOST -u $MYSQL_USER -p$MYSQL_PASSWORD -e "SHOW TABLES;" TestGestioneProgetti
+        mysql -h $MYSQL_HOST -u $MYSQL_USER -p$MYSQL_PASSWORD -e "DESCRIBE progetti;" TestGestioneProgetti  # Aggiungi questa riga per verificare la struttura della tabella
 
     - name: Debug MySQL Connection
       env:
@@ -68,7 +70,7 @@ jobs:
         MYSQL_PASSWORD: ${{ secrets.DB_USER_PASSWORD }}
         MYSQL_DATABASE: 'TestGestioneProgetti'
       run: |
-        pytest --junitxml=reports/test-report.xml --cov=./ --cov-report=xml --cov-report=html
+        pytest --junitxml=reports/test-report.xml --cov=./ --cov-report=xml --cov-report=html -v
 
     - name: Upload test report
       uses: actions/upload-artifact@v3
