@@ -53,7 +53,7 @@ def run_test(func):
             raise
     return wrapper
   
-  
+
 @pytest.fixture(scope="session", autouse=True)
 def print_test_results(request):
     cov = coverage.Coverage(source=['app'])
