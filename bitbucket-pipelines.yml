@@ -94,22 +94,70 @@
 #                   $DOCKER_REGISTRY/$BITBUCKET_REPO_SLUG:$BITBUCKET_COMMIT
 
 
-
 image: python:3.10
+
+definitions:
+  services:
+    mysql:
+      image: mysql:5.7
+      environment:
+        MYSQL_DATABASE: 'TestGestioneProgetti'
+        MYSQL_ROOT_PASSWORD: $DB_PASSWORD
+        MYSQL_USER: $DB_USER
+        MYSQL_PASSWORD: $DB_USER_PASSWORD
 
 pipelines:
   default:
     - step:
-        name: Test
+        name: Test and Coverage
+        services:
+          - mysql
         caches:
           - pip
         script:
+          - export TEST_DB_HOST=127.0.0.1
+          - export TEST_DB_NAME=$DB_NAME
+          - export TEST_DB_USER=$DB_USER
+          - export TEST_DB_PASSWORD=$DB_USER_PASSWORD
           - pip install -r requirements.txt
-          - cd src  # Cambia alla directory src
-          - pytest -v tests --junitxml=../test-reports/report.xml
+          - echo "Current directory structure:"
+          - find . -type d | sort | sed -e "s/[^-][^\/]*\//  |/g" -e "s/|\([^ ]\)/|-\1/"
+          - echo "Content of src directory:"
+          - ls -R src/
+          - echo "Python version:"
+          - python --version
+          - echo "Installed packages:"
+          - pip list
+          - echo "Database connection test:"
+          - python -c "import mysql.connector; print(mysql.connector.connect(host='$TEST_DB_HOST', user='$TEST_DB_USER', password='$TEST_DB_PASSWORD', database='$TEST_DB_NAME'))"
+          - pytest -v src/tests --junitxml=test-reports/report.xml
+          - pip install coverage
+          - coverage run -m pytest src/tests
+          - coverage xml -o coverage-reports/coverage.xml
+          - coverage report
         artifacts:
           - test-reports/**
+          - coverage-reports/**
 
-definitions:
-  caches:
-    pip: ~/.cache/pip
+  branches:
+    main:
+      - step:
+          name: Test and Coverage on Main
+          services:
+            - mysql
+          caches:
+            - pip
+          script:
+            - export TEST_DB_HOST=127.0.0.1
+            - export TEST_DB_NAME=$DB_NAME
+            - export TEST_DB_USER=$DB_USER
+            - export TEST_DB_PASSWORD=$DB_USER_PASSWORD
+            - pip install -r requirements.txt
+            - pytest -v src/tests --junitxml=test-reports/report.xml
+            - pip install coverage
+            - coverage run -m pytest src/tests
+            - coverage xml -o coverage-reports/coverage.xml
+            - coverage report
+          artifacts:
+            - test-reports/**
+            - coverage-reports/**
