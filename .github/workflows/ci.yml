@@ -47,7 +47,7 @@ jobs:
         MYSQL_DATABASE: 'TestGestioneProgetti'
       run: |
         mysql -h $MYSQL_HOST -u $MYSQL_USER -p$MYSQL_PASSWORD -e "CREATE DATABASE IF NOT EXISTS TestGestioneProgetti;"
-        mysql -h $MYSQL_HOST -u $MYSQL_USER -p$MYSQL_PASSWORD TestGestioneProgetti < gestione_progetti/src/sql/script.sql
+        mysql -h $MYSQL_HOST -u $MYSQL_USER -p$MYSQL_PASSWORD TestGestioneProgetti < gestione_progetti/src/sql/test_database_setup.sql
 
     - name: Debug MySQL Connection
       env:
