@@ -1,94 +1,115 @@
-image: python:3.8
+# image: python:3.8
 
-definitions:
-  services:
-    docker:
-      memory: 2048
-    mysql:
-      image: mysql:5.7
-      environment:
-        MYSQL_DATABASE: 'TestGestioneProgetti'
-        MYSQL_ROOT_PASSWORD: $DB_PASSWORD
-        MYSQL_USER: $DB_USER
-        MYSQL_PASSWORD: $DB_USER_PASSWORD
+# definitions:
+#   services:
+#     docker:
+#       memory: 2048
+#     mysql:
+#       image: mysql:5.7
+#       environment:
+#         MYSQL_DATABASE: 'TestGestioneProgetti'
+#         MYSQL_ROOT_PASSWORD: $DB_PASSWORD
+#         MYSQL_USER: $DB_USER
+#         MYSQL_PASSWORD: $DB_USER_PASSWORD
+
+# pipelines:
+#   default:
+#     - step:
+#         name: Test
+#         services:
+#           - mysql
+#         caches:
+#           - pip
+#         script:
+#           - export TEST_DB_HOST=127.0.0.1
+#           - export TEST_DB_NAME=$DB_NAME
+#           - export TEST_DB_USER=$DB_USER
+#           - export TEST_DB_PASSWORD=$DB_USER_PASSWORD
+#           - pip install -r requirements.txt
+#           - echo "Current directory structure:"
+#           - find . -type d | sort | sed -e "s/[^-][^\/]*\//  |/g" -e "s/|\([^ ]\)/|-\1/"
+#           - echo "Content of src directory:"
+#           - ls -R src/
+#           - echo "Python version:"
+#           - python --version
+#           - echo "Installed packages:"
+#           - pip list
+#           - echo "Database connection test:"
+#           - python -c "import mysql.connector; print(mysql.connector.connect(host='$TEST_DB_HOST', user='$TEST_DB_USER', password='$TEST_DB_PASSWORD', database='$TEST_DB_NAME'))"
+#           - pytest -v src/tests --junitxml=test-reports/report.xml
+#         after-script:
+#           - pip install coverage
+#           - coverage run -m pytest src/tests
+#           - coverage report
+#         artifacts:
+#           - test-reports/**
+
+#   branches:
+#     main:
+#       - step:
+#           name: Test
+#           services:
+#             - mysql
+#           caches:
+#             - pip
+#           script:
+#             - export TEST_DB_HOST=127.0.0.1
+#             - export TEST_DB_NAME=$DB_NAME
+#             - export TEST_DB_USER=$DB_USER
+#             - export TEST_DB_PASSWORD=$DB_USER_PASSWORD
+#             - pip install -r requirements.txt
+#             - pytest -v src/tests --junitxml=test-reports/report.xml
+#           after-script:
+#             - pip install coverage
+#             - coverage run -m pytest src/tests
+#             - coverage report
+#           artifacts:
+#             - test-reports/**
+#       - step:
+#           name: Build and Push Docker Image
+#           services:
+#             - docker
+#           script:
+#             - echo $DOCKER_PASSWORD | docker login --username $DOCKER_USERNAME --password-stdin
+#             - docker build -t $DOCKER_REGISTRY/$BITBUCKET_REPO_SLUG:$BITBUCKET_COMMIT .
+#             - docker push $DOCKER_REGISTRY/$BITBUCKET_REPO_SLUG:$BITBUCKET_COMMIT
+#       - step:
+#           name: Deploy to Production
+#           deployment: production
+#           script:
+#             - pipe: atlassian/ssh-run:0.4.1
+#               variables:
+#                 SSH_USER: $SERVER_USER
+#                 SERVER: $SERVER_IP
+#                 MODE: 'command'
+#                 COMMAND: >
+#                   docker pull $DOCKER_REGISTRY/$BITBUCKET_REPO_SLUG:$BITBUCKET_COMMIT &&
+#                   docker stop $CONTAINER_NAME || true &&
+#                   docker rm $CONTAINER_NAME || true &&
+#                   docker run -d --name $CONTAINER_NAME -p 5000:5000 
+#                   -e DB_USER=$DB_USER 
+#                   -e DB_PASSWORD=$DB_USER_PASSWORD 
+#                   -e DB_NAME=$DB_NAME 
+#                   -e DB_HOST=$DB_HOST 
+#                   $DOCKER_REGISTRY/$BITBUCKET_REPO_SLUG:$BITBUCKET_COMMIT
+
+
+
+image: python:3.10
 
 pipelines:
   default:
     - step:
         name: Test
-        services:
-          - mysql
         caches:
           - pip
         script:
-          - export TEST_DB_HOST=127.0.0.1
-          - export TEST_DB_NAME=$DB_NAME
-          - export TEST_DB_USER=$DB_USER
-          - export TEST_DB_PASSWORD=$DB_USER_PASSWORD
           - pip install -r requirements.txt
-          - echo "Current directory structure:"
-          - find . -type d | sort | sed -e "s/[^-][^\/]*\//  |/g" -e "s/|\([^ ]\)/|-\1/"
-          - echo "Content of src directory:"
-          - ls -R src/
-          - echo "Python version:"
-          - python --version
-          - echo "Installed packages:"
-          - pip list
-          - echo "Database connection test:"
-          - python -c "import mysql.connector; print(mysql.connector.connect(host='$TEST_DB_HOST', user='$TEST_DB_USER', password='$TEST_DB_PASSWORD', database='$TEST_DB_NAME'))"
-          - pytest -v src/tests --junitxml=test-reports/report.xml
-        after-script:
-          - pip install coverage
-          - coverage run -m pytest src/tests
-          - coverage report
+          - cd src  # Cambia alla directory src
+          - pytest -v tests --junitxml=../test-reports/report.xml
         artifacts:
           - test-reports/**
 
-  branches:
-    main:
-      - step:
-          name: Test
-          services:
-            - mysql
-          caches:
-            - pip
-          script:
-            - export TEST_DB_HOST=127.0.0.1
-            - export TEST_DB_NAME=$DB_NAME
-            - export TEST_DB_USER=$DB_USER
-            - export TEST_DB_PASSWORD=$DB_USER_PASSWORD
-            - pip install -r requirements.txt
-            - pytest -v src/tests --junitxml=test-reports/report.xml
-          after-script:
-            - pip install coverage
-            - coverage run -m pytest src/tests
-            - coverage report
-          artifacts:
-            - test-reports/**
-      - step:
-          name: Build and Push Docker Image
-          services:
-            - docker
-          script:
-            - echo $DOCKER_PASSWORD | docker login --username $DOCKER_USERNAME --password-stdin
-            - docker build -t $DOCKER_REGISTRY/$BITBUCKET_REPO_SLUG:$BITBUCKET_COMMIT .
-            - docker push $DOCKER_REGISTRY/$BITBUCKET_REPO_SLUG:$BITBUCKET_COMMIT
-      - step:
-          name: Deploy to Production
-          deployment: production
-          script:
-            - pipe: atlassian/ssh-run:0.4.1
-              variables:
-                SSH_USER: $SERVER_USER
-                SERVER: $SERVER_IP
-                MODE: 'command'
-                COMMAND: >
-                  docker pull $DOCKER_REGISTRY/$BITBUCKET_REPO_SLUG:$BITBUCKET_COMMIT &&
-                  docker stop $CONTAINER_NAME || true &&
-                  docker rm $CONTAINER_NAME || true &&
-                  docker run -d --name $CONTAINER_NAME -p 5000:5000 
-                  -e DB_USER=$DB_USER 
-                  -e DB_PASSWORD=$DB_USER_PASSWORD 
-                  -e DB_NAME=$DB_NAME 
-                  -e DB_HOST=$DB_HOST 
-                  $DOCKER_REGISTRY/$BITBUCKET_REPO_SLUG:$BITBUCKET_COMMIT
+definitions:
+  caches:
+    pip: ~/.cache/pip
