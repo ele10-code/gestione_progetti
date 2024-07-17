@@ -1,0 +1,81 @@
+name: CI
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    services:
+      mysql:
+        image: mysql:5.7
+        env:
+          MYSQL_DATABASE: 'TestGestioneProgetti'
+          MYSQL_ROOT_PASSWORD: ${{ secrets.DB_PASSWORD }}
+          MYSQL_USER: ${{ secrets.DB_USER }}
+          MYSQL_PASSWORD: ${{ secrets.DB_USER_PASSWORD }}
+        ports:
+          - 3306
+        options: --health-cmd="mysqladmin ping" --health-interval=10s --health-timeout=5s --health-retries=3
+
+    steps:
+    - uses: actions/checkout@v2
+
+    - name: Set up Python 3.8
+      uses: actions/setup-python@v2
+      with:
+        python-version: 3.8
+
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+
+    - name: Show debug information
+      run: |
+        echo "Current directory structure:"
+        find . -type d | sort | sed -e "s/[^-][^\/]*\//  |/g" -e "s/|\([^ ]\)/|-\1/"
+        echo "Content of src directory:"
+        ls -R src/
+        echo "Python version:"
+        python --version
+        echo "Installed packages:"
+        pip list
+
+    - name: Test database connection
+      env:
+        TEST_DB_HOST: 127.0.0.1
+        TEST_DB_NAME: ${{ secrets.DB_NAME }}
+        TEST_DB_USER: ${{ secrets.DB_USER }}
+        TEST_DB_PASSWORD: ${{ secrets.DB_USER_PASSWORD }}
+      run: |
+        python -c "import mysql.connector; print(mysql.connector.connect(host='$TEST_DB_HOST', user='$TEST_DB_USER', password='$TEST_DB_PASSWORD', database='$TEST_DB_NAME'))"
+
+    - name: Run tests and coverage
+      env:
+        TEST_DB_HOST: 127.0.0.1
+        TEST_DB_NAME: ${{ secrets.DB_NAME }}
+        TEST_DB_USER: ${{ secrets.DB_USER }}
+        TEST_DB_PASSWORD: ${{ secrets.DB_USER_PASSWORD }}
+      run: |
+        pytest -v src/tests --junitxml=test-reports/report.xml
+        pip install coverage
+        coverage run -m pytest src/tests
+        coverage xml -o coverage-reports/coverage.xml
+        coverage report
+
+    - name: Upload test results
+      uses: actions/upload-artifact@v2
+      with:
+        name: test-results
+        path: test-reports/report.xml
+
+    - name: Upload coverage results
+      uses: actions/upload-artifact@v2
+      with:
+        name: coverage-results
+        path: coverage-reports/coverage.xml
