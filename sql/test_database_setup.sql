@@ -7,7 +7,7 @@ CREATE TABLE IF NOT EXISTS utenti (
     nome VARCHAR(255) NOT NULL,
     email VARCHAR(255) UNIQUE NOT NULL,
     password_hash VARCHAR(255),
-    is_active BOOLEAN DEFAULT TRUE
+    _is_active BOOLEAN DEFAULT TRUE
 );
 
 -- Crea la tabella progetti
