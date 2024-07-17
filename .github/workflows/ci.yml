@@ -2,80 +2,61 @@ name: CI
 
 on:
   push:
-    branches: [ main ]
+    branches:
+      - main
   pull_request:
-    branches: [ main ]
+    branches:
+      - main
 
 jobs:
-  test:
+  build:
     runs-on: ubuntu-latest
 
     services:
       mysql:
         image: mysql:5.7
+        ports:
+          - 3306:3306
         env:
           MYSQL_DATABASE: 'TestGestioneProgetti'
           MYSQL_ROOT_PASSWORD: ${{ secrets.DB_PASSWORD }}
           MYSQL_USER: ${{ secrets.DB_USER }}
           MYSQL_PASSWORD: ${{ secrets.DB_USER_PASSWORD }}
-        ports:
-          - 3306
-        options: --health-cmd="mysqladmin ping" --health-interval=10s --health-timeout=5s --health-retries=3
 
     steps:
     - uses: actions/checkout@v2
 
-    - name: Set up Python 3.8
+    - name: Set up Python
       uses: actions/setup-python@v2
       with:
-        python-version: 3.8
+        python-version: '3.10'
 
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
         pip install -r requirements.txt
 
-    - name: Show debug information
-      run: |
-        echo "Current directory structure:"
-        find . -type d | sort | sed -e "s/[^-][^\/]*\//  |/g" -e "s/|\([^ ]\)/|-\1/"
-        echo "Content of src directory:"
-        ls -R src/
-        echo "Python version:"
-        python --version
-        echo "Installed packages:"
-        pip list
+    - name: Wait for MySQL to start
+      run: sleep 30
 
-    - name: Test database connection
+    - name: Run tests
       env:
         TEST_DB_HOST: 127.0.0.1
-        TEST_DB_NAME: ${{ secrets.DB_NAME }}
         TEST_DB_USER: ${{ secrets.DB_USER }}
         TEST_DB_PASSWORD: ${{ secrets.DB_USER_PASSWORD }}
+        TEST_DB_NAME: 'TestGestioneProgetti'
       run: |
         python -c "import mysql.connector; print(mysql.connector.connect(host='$TEST_DB_HOST', user='$TEST_DB_USER', password='$TEST_DB_PASSWORD', database='$TEST_DB_NAME'))"
+        pytest --junitxml=reports/test-report.xml --cov=./ --cov-report=xml --cov-report=html
 
-    - name: Run tests and coverage
-      env:
-        TEST_DB_HOST: 127.0.0.1
-        TEST_DB_NAME: ${{ secrets.DB_NAME }}
-        TEST_DB_USER: ${{ secrets.DB_USER }}
-        TEST_DB_PASSWORD: ${{ secrets.DB_USER_PASSWORD }}
-      run: |
-        pytest -v src/tests --junitxml=test-reports/report.xml
-        pip install coverage
-        coverage run -m pytest src/tests
-        coverage xml -o coverage-reports/coverage.xml
-        coverage report
-
-    - name: Upload test results
-      uses: actions/upload-artifact@v2
+    - name: Upload test report
+      uses: actions/upload-artifact@v3
       with:
-        name: test-results
-        path: test-reports/report.xml
+        name: test-report
+        path: reports/test-report.xml
 
-    - name: Upload coverage results
-      uses: actions/upload-artifact@v2
+    - name: Upload coverage report
+      uses: actions/upload-artifact@v3
       with:
-        name: coverage-results
-        path: coverage-reports/coverage.xml
+        name: coverage-report
+        path: htmlcov/
