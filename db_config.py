@@ -3,7 +3,7 @@ import os
 db_config = {
     'user': os.getenv('DB_USER', 'admin'),
     'password': os.getenv('DB_PASSWORD', 'admin_password'),
-    'host': os.getenv('DB_HOST', 'localhost'),
+    'host': os.getenv('DB_HOST', '127.0.0.1'),
     'database': os.getenv('DB_NAME', 'TestGestioneProgetti'),
     'port': os.getenv('DB_PORT', '3306')
 }
