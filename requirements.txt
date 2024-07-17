@@ -6,3 +6,4 @@ mysql-connector-python==8.0.32
 pytest==8.2.2 
 SQLAlchemy==2.0.29
 Werkzeug==3.0.3
+pytest-cov == 3.0.0

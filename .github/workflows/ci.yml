@@ -46,7 +46,6 @@ jobs:
         TEST_DB_PASSWORD: ${{ secrets.DB_USER_PASSWORD }}
         TEST_DB_NAME: 'TestGestioneProgetti'
       run: |
-        python -c "import mysql.connector; print(mysql.connector.connect(host='$TEST_DB_HOST', user='$TEST_DB_USER', password='$TEST_DB_PASSWORD', database='$TEST_DB_NAME'))"
         pytest --junitxml=reports/test-report.xml --cov=./ --cov-report=xml --cov-report=html
 
     - name: Upload test report
