@@ -432,7 +432,7 @@ def load_user(user_id):
                 nome=user_data['nome'],
                 email=user_data['email'],
                 password_hash=user_data['password_hash'],
-                _is_active=user_data['_is_active']
+                _is_active=user_data.get('is_active', True)
             )
             cursor.close()
             return user
